@@ -12,6 +12,10 @@ async def test_input_errors(pdf,text,code):
 @pytest.mark.anyio
 async def test_normalizes_text(): assert await read_material(None,'  contenido   suficiente  ',S)=='contenido suficiente'
 @pytest.mark.anyio
+async def test_text_with_empty_upload():
+ pdf=UploadFile(io.BytesIO(),filename='')
+ assert await read_material(pdf,'  contenido   suficiente  ',S)=='contenido suficiente'
+@pytest.mark.anyio
 async def test_empty_pdf():
  b=io.BytesIO();w=PdfWriter();w.add_blank_page(100,100);w.write(b);b.seek(0)
  with pytest.raises(MaterialError) as e:await read_material(UploadFile(b,filename='empty.pdf',headers={'content-type':'application/pdf'}),None,Settings(min_text_chars=2,max_pdf_bytes=9999))

@@ -6,7 +6,8 @@ class MaterialError(ValueError):
 def normalize(text): return re.sub(r'\s+',' ',text).strip()
 async def read_material(pdf:UploadFile|None,text:str|None,settings):
     clean=normalize(text or '')
-    if bool(pdf)==bool(clean): raise MaterialError('invalid_source','Elegí exactamente una fuente: PDF o texto.')
+    has_pdf=pdf is not None and bool(pdf.filename)
+    if has_pdf==bool(clean): raise MaterialError('invalid_source','Elegí exactamente una fuente: PDF o texto.')
     if clean:
         if len(clean)>settings.max_text_chars: raise MaterialError('text_too_large',f'El texto supera {settings.max_text_chars} caracteres.')
         if len(clean)<settings.min_text_chars: raise MaterialError('insufficient_content','Necesitamos un apunte más completo.')
