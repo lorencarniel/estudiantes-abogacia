@@ -15,7 +15,7 @@ $('#material-form').addEventListener('submit',async e=>{
  try{
   const body=new FormData(e.currentTarget);
   if(exam){await startExam(body);$('#result').hidden=true;state('success','Examen listo. Respondé las preguntas y entregalo antes de que termine el tiempo.')}
-  else{const r=await fetch('/api/maps',{method:'POST',body}),data=await r.json();if(!r.ok)throw new Error(data.message||'No pudimos generar el mapa.');render(data);clearInterval(examTimer);examTimer=null;activeExam=null;$('#exam-panel').hidden=true;state('success','Mapa generado. Podés explorarlo o descargarlo.')}
+  else{const r=await fetch('/api/maps',{method:'POST',body}),data=await r.json();if(!r.ok)throw new Error(data.message||'No pudimos generar el mapa.');render(data);clearInterval(examTimer);examTimer=null;activeExam=null;$('#exam-panel').hidden=true;renderHistory();state('success','Mapa generado. Podés explorarlo o descargarlo.')}
  }catch(err){state('error',err.message+' Corregí la entrada o volvé a intentar.')}finally{button.disabled=false}
 });
 function render(map){current=map;$('#result').hidden=false;$('#download').disabled=false;const nodes=new vis.DataSet(map.nodes.map(n=>({...n,shape:'box',margin:12,widthConstraint:{maximum:190}})));const edges=new vis.DataSet(map.edges.map(e=>({from:e.source,to:e.target,label:e.label,arrows:'to',font:{align:'middle'}})));network=new vis.Network($('#network'),{nodes,edges},{layout:{hierarchical:{enabled:true,direction:'UD',sortMethod:'directed'}},physics:false,interaction:{dragView:true,zoomView:true,multiselect:false}});network.once('afterDrawing',()=>network.fit({animation:true}))}

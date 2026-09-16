@@ -72,6 +72,25 @@
     </form>
     <div id="exam-results" hidden aria-live="polite"></div>
   </section>
+
+  <section id="exam-history" hidden aria-labelledby="history-title">
+    <div class="history-heading">
+      <div>
+        <p class="eyebrow">Tus prácticas</p>
+        <h2 id="history-title">Exámenes anteriores</h2>
+        <p class="hint">Podés repasar tus respuestas o repetir un examen sin generar preguntas nuevas. Este historial permanece solo en esta pestaña.</p>
+      </div>
+      <button id="clear-history" class="secondary-button" type="button">Borrar historial</button>
+    </div>
+    <div id="history-list"></div>
+    <div id="history-review" hidden>
+      <div class="history-heading">
+        <h3 id="history-review-title">Repaso</h3>
+        <button id="close-review" class="secondary-button" type="button">Cerrar repaso</button>
+      </div>
+      <div id="history-review-content"></div>
+    </div>
+  </section>
 </main>
 </body>
 </html>

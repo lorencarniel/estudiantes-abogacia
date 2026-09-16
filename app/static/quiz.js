@@ -1,18 +1,32 @@
+const HISTORY_KEY='completed-exams-v1';
 let activeExam=null;
 let examTimer=null;
 let examDeadline=0;
 let grading=false;
+let completedExams=[];
+
+try{
+ const saved=JSON.parse(sessionStorage.getItem(HISTORY_KEY)||'[]');
+ if(Array.isArray(saved))completedExams=saved.filter(entry=>
+  entry&&entry.exam&&Array.isArray(entry.exam.questions)&&entry.grade&&Array.isArray(entry.grade.results)
+ );
+}catch{completedExams=[]}
+
+function $$(selector){return [...document.querySelectorAll(selector)]}
+
+function saveHistory(){
+ try{sessionStorage.setItem(HISTORY_KEY,JSON.stringify(completedExams))}catch{
+  state('error','El historial sigue disponible mientras esta página permanezca abierta, pero no pudo guardarse para una recarga.');
+ }
+}
 
 function examProgress(){
  const answered=$$('#exam-questions input:checked').length;
  $('#exam-progress').textContent=`${answered} de ${activeExam.questions.length} respondidas`;
 }
 
-function $$(selector){return [...document.querySelectorAll(selector)]}
-
 function renderExam(exam){
- const container=$('#exam-questions');
- container.replaceChildren();
+ const container=$('#exam-questions');container.replaceChildren();
  exam.questions.forEach((question,index)=>{
   const field=document.createElement('fieldset');field.className='exam-question';
   const legend=document.createElement('legend');legend.textContent=`${index+1}. ${question.statement}`;
@@ -26,10 +40,10 @@ function renderExam(exam){
   });
   container.append(field);
  });
- $('#exam-title').textContent=`Examen ${exam.difficulty}`;
+ $('#exam-title').textContent=`${exam.practice?'Práctica de':'Examen'} ${exam.difficulty}`;
  $('#exam-results').hidden=true;$('#exam-results').replaceChildren();
  $('#exam-form').hidden=false;$('#grade-button').disabled=false;
- $('#exam-panel').hidden=false;examProgress();
+ $('#exam-panel').hidden=false;examProgress();renderHistory();
 }
 
 function updateExamTimer(){
@@ -39,14 +53,20 @@ function updateExamTimer(){
  if(remaining===0){clearInterval(examTimer);examTimer=null;submitExam(true)}
 }
 
+function beginExam(exam){
+ clearInterval(examTimer);activeExam=exam;examDeadline=Date.now()+exam.duration_seconds*1000;
+ $('#history-review').hidden=true;
+ renderExam(exam);updateExamTimer();examTimer=setInterval(updateExamTimer,1000);
+ $('#exam-panel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 async function startExam(body){
- clearInterval(examTimer);examTimer=null;activeExam=null;$('#exam-panel').hidden=true;
+ clearInterval(examTimer);examTimer=null;activeExam=null;$('#exam-panel').hidden=true;renderHistory();
  const response=await fetch('/api/exams',{method:'POST',body});
  const exam=await response.json();
  if(!response.ok)throw new Error(exam.message||'No pudimos generar el examen.');
- clearInterval(examTimer);activeExam=exam;examDeadline=Date.now()+exam.duration_seconds*1000;
- renderExam(exam);updateExamTimer();examTimer=setInterval(updateExamTimer,1000);
- $('#exam-panel').scrollIntoView({behavior:'smooth',block:'start'});
+ const nextNumber=completedExams.reduce((max,entry)=>Math.max(max,Number(entry.series_number)||0),0)+1;
+ beginExam({...exam,series_number:nextNumber,attempt:1});
 }
 
 function selectedAnswers(){
@@ -56,41 +76,113 @@ function selectedAnswers(){
  });
 }
 
-function showExamResults(grade){
- const panel=$('#exam-results');panel.replaceChildren();
+function reviewContent(exam,grade){
+ const fragment=document.createDocumentFragment();
  const heading=document.createElement('h3');
  heading.textContent=`Resultado: ${grade.score} de ${grade.total} · ${grade.passed?'Aprobado':'Seguí practicando'}`;
- panel.append(heading);
+ fragment.append(heading);
  grade.results.forEach((item,index)=>{
   const card=document.createElement('article');card.className=`answer-review ${item.correct?'correct':'incorrect'}`;
-  const title=document.createElement('h4');title.textContent=`${item.number}. ${activeExam.questions[index].statement}`;
+  const title=document.createElement('h4');title.textContent=`${item.number}. ${exam.questions[index].statement}`;
   const status=document.createElement('p');
-  status.textContent=item.correct?'Correcta':`Tu respuesta: ${item.selected_index===null?'sin responder':activeExam.questions[index].options[item.selected_index]}`;
-  const answer=document.createElement('p');answer.textContent=`Respuesta correcta: ${activeExam.questions[index].options[item.correct_index]}`;
+  status.textContent=item.correct?'Correcta':`Tu respuesta: ${item.selected_index===null?'sin responder':exam.questions[index].options[item.selected_index]}`;
+  const answer=document.createElement('p');answer.textContent=`Respuesta correcta: ${exam.questions[index].options[item.correct_index]}`;
   const explanation=document.createElement('p');explanation.textContent=item.explanation;
-  card.append(title,status,answer,explanation);panel.append(card);
+  card.append(title,status,answer,explanation);fragment.append(card);
  });
+ return fragment;
+}
+
+function showExamResults(exam,grade){
+ const panel=$('#exam-results');panel.replaceChildren(reviewContent(exam,grade));
  $('#exam-form').hidden=true;panel.hidden=false;
  panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function practiceGrade(exam,answers){
+ const results=exam.answer_key.map((key,index)=>({
+  number:index+1,selected_index:answers[index],correct_index:key.correct_index,
+  correct:answers[index]===key.correct_index,explanation:key.explanation
+ }));
+ const score=results.filter(result=>result.correct).length;
+ return {score,total:results.length,passed:score>=7,difficulty:exam.difficulty,results};
+}
+
+function recordExam(exam,grade){
+ completedExams.push({
+  series_number:exam.series_number,attempt:exam.attempt,
+  completed_at:new Date().toLocaleString('es-AR'),
+  exam:{difficulty:exam.difficulty,duration_seconds:exam.duration_seconds,questions:exam.questions},
+  grade
+ });
+ saveHistory();
 }
 
 async function submitExam(expired=false){
  if(!activeExam||grading)return;
  grading=true;$('#grade-button').disabled=true;
+ const exam=activeExam;
+ const answers=selectedAnswers();
  try{
-  const response=await fetch('/api/exams/grade',{
-   method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({exam_id:activeExam.exam_id,answers:selectedAnswers()})
-  });
-  const result=await response.json();
-  if(!response.ok)throw new Error(result.message||'No pudimos corregir el examen.');
-  clearInterval(examTimer);examTimer=null;showExamResults(result);
-  state('success',expired?'Terminó el tiempo. El examen se entregó automáticamente.':'Examen entregado y corregido.');
-  activeExam=null;
+  let result;
+  if(exam.practice)result=practiceGrade(exam,answers);
+  else{
+   const response=await fetch('/api/exams/grade',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({exam_id:exam.exam_id,answers})
+   });
+   result=await response.json();
+   if(!response.ok)throw new Error(result.message||'No pudimos corregir el examen.');
+  }
+  clearInterval(examTimer);examTimer=null;
+  showExamResults(exam,result);recordExam(exam,result);
+  activeExam=null;renderHistory();
+  state('success',expired?'Terminó el tiempo. El examen se entregó automáticamente.':'Examen entregado y corregido. Podés repasarlo o practicarlo de nuevo desde el historial.');
  }catch(error){
   state('error',error.message);
   if(Date.now()<examDeadline)$('#grade-button').disabled=false;
  }finally{grading=false}
 }
 
+function showHistoryReview(entry){
+ const panel=$('#history-review');
+ $('#history-review-title').textContent=`Repaso del examen ${entry.series_number} · intento ${entry.attempt}`;
+ $('#history-review-content').replaceChildren(reviewContent(entry.exam,entry.grade));
+ panel.hidden=false;panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function startPractice(entry){
+ const attempt=completedExams.filter(item=>item.series_number===entry.series_number).length+1;
+ const answerKey=entry.grade.results.map(item=>({correct_index:item.correct_index,explanation:item.explanation}));
+ beginExam({...entry.exam,practice:true,answer_key:answerKey,
+  series_number:entry.series_number,attempt});
+ state('success','Práctica iniciada con las mismas preguntas. La corrección aparecerá al entregar.');
+}
+
+function renderHistory(){
+ const panel=$('#exam-history');panel.hidden=completedExams.length===0;
+ const list=$('#history-list');list.replaceChildren();
+ [...completedExams].reverse().forEach(entry=>{
+  const card=document.createElement('article');card.className='history-card';
+  const detail=document.createElement('div');
+  const title=document.createElement('h3');title.textContent=`Examen ${entry.series_number} · intento ${entry.attempt}`;
+  const summary=document.createElement('p');summary.className='hint';
+  summary.textContent=`Dificultad ${entry.exam.difficulty} · ${entry.grade.score}/${entry.grade.total} · ${entry.completed_at}`;
+  detail.append(title,summary);
+  const actions=document.createElement('div');actions.className='history-actions';
+  const review=document.createElement('button');review.type='button';review.className='secondary-button';review.textContent='Repasar respuestas';
+  review.disabled=Boolean(activeExam);review.addEventListener('click',()=>showHistoryReview(entry));
+  const practice=document.createElement('button');practice.type='button';practice.textContent='Practicar de nuevo';
+  practice.disabled=Boolean(activeExam);practice.addEventListener('click',()=>startPractice(entry));
+  actions.append(review,practice);card.append(detail,actions);list.append(card);
+ });
+ $('#clear-history').disabled=Boolean(activeExam);
+}
+
 $('#exam-form').addEventListener('submit',event=>{event.preventDefault();submitExam()});
+$('#close-review').addEventListener('click',()=>{$('#history-review').hidden=true});
+$('#clear-history').addEventListener('click',()=>{
+ completedExams=[];sessionStorage.removeItem(HISTORY_KEY);
+ $('#history-review').hidden=true;renderHistory();
+});
+renderHistory();

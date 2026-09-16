@@ -44,7 +44,7 @@ Abrir <http://127.0.0.1:8000>. El proveedor se sustituye por un doble en las pru
 
 En el formulario, elegir **Cuestionario tipo examen**, seleccionar dificultad fácil, media o difícil y aportar un PDF o texto. Se generan 10 preguntas de opción múltiple basadas en el apunte. El tiempo disponible es de 15, 20 o 25 minutos según el nivel. La corrección, la nota y las explicaciones aparecen después de entregar; se aprueba con 7 respuestas correctas.
 
-Las respuestas correctas quedan solo en memoria del servidor durante el examen. Al entregar, el examen se elimina; si se reinicia el servidor, los exámenes en curso se pierden. Un cuestionario generado por IA puede contener errores: verificar siempre las respuestas con el material de estudio y las fuentes jurídicas pertinentes.
+Las respuestas correctas quedan solo en memoria del servidor durante el examen. Al entregar, el examen se elimina del servidor; si se reinicia el servidor, los exámenes en curso se pierden. Los exámenes completados y sus correcciones quedan en el almacenamiento de sesión de la pestaña para poder repasarlos o practicarlos de nuevo sin otra llamada a la API. Se pueden borrar con **Borrar historial** y dejan de estar disponibles al cerrar la pestaña. Un cuestionario generado por IA puede contener errores: verificar siempre las respuestas con el material de estudio y las fuentes jurídicas pertinentes.
 
 ## Formatos, privacidad y límites
 

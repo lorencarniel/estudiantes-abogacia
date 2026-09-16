@@ -15,3 +15,13 @@ select{width:100%;padding:.8rem;border:1px solid #a9b4c7;border-radius:8px;backg
 #exam-results{margin-top:1rem}.answer-review{border-left:5px solid #a21d2c;background:#fff7f7;padding:1rem;margin:.8rem 0;border-radius:8px}
 .answer-review.correct{border-left-color:#27a862;background:#f3fbf6}.answer-review p{margin:.4rem 0;line-height:1.5}
 @media(max-width:600px){.exam-heading{align-items:center}.timer{font-size:1.2rem}.exam-question{padding:.7rem}}
+#exam-history{background:white;border-radius:18px;padding:1.4rem;margin-top:1.5rem;box-shadow:0 8px 30px #243b6415}
+.history-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.history-heading .eyebrow{margin:0}.history-heading h2{margin:.2rem 0}
+.history-card{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;padding:1rem 0;border-top:1px solid #dbe1eb}
+.history-card h3{font-size:1.05rem;margin:0}.history-card p{margin:.3rem 0 0}
+.history-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.secondary-button{background:#eef0fa;color:#283558}
+.secondary-button:hover{background:#e3e6f5}
+#history-review{border-top:2px solid #dbe1eb;padding-top:1.5rem;margin-top:1rem}
+@media(max-width:600px){.history-actions{width:100%}.history-actions button{flex:1 1 42%}}
