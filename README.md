@@ -1,6 +1,6 @@
 # Mapas conceptuales para estudiantes de abogacía
 
-Aplicación FastAPI sin cuentas ni base de datos que convierte un PDF con texto seleccionable o texto pegado en un mapa conceptual interactivo.
+Aplicación FastAPI sin cuentas ni base de datos que convierte un PDF con texto seleccionable o texto pegado en un mapa conceptual interactivo o en un cuestionario tipo examen.
 
 ## Requisitos e instalación
 
@@ -39,6 +39,12 @@ pip-audit
 ```
 
 Abrir <http://127.0.0.1:8000>. El proveedor se sustituye por un doble en las pruebas: no consumen la API real.
+
+## Cuestionarios tipo examen
+
+En el formulario, elegir **Cuestionario tipo examen**, seleccionar dificultad fácil, media o difícil y aportar un PDF o texto. Se generan 10 preguntas de opción múltiple basadas en el apunte. El tiempo disponible es de 15, 20 o 25 minutos según el nivel. La corrección, la nota y las explicaciones aparecen después de entregar; se aprueba con 7 respuestas correctas.
+
+Las respuestas correctas quedan solo en memoria del servidor durante el examen. Al entregar, el examen se elimina; si se reinicia el servidor, los exámenes en curso se pierden. Un cuestionario generado por IA puede contener errores: verificar siempre las respuestas con el material de estudio y las fuentes jurídicas pertinentes.
 
 ## Formatos, privacidad y límites
 
