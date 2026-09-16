@@ -1,0 +1,16 @@
+{
+  "name": "estudiantes-abogacia-web",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "vis-network": "9.1.9"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0",
+    "jsdom": "26.1.0",
+    "vitest": "3.2.4"
+  }
+}
