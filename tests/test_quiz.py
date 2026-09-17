@@ -22,9 +22,11 @@ def exam_data():
 class FakeQuizGenerator:
     def __init__(self):
         self.difficulties = []
+        self.previous = []
 
-    async def generate(self, text, difficulty):
+    async def generate(self, text, difficulty, avoid_questions=()):
         self.difficulties.append(difficulty)
+        self.previous.append(avoid_questions)
         return Exam.model_validate(exam_data())
 
 
@@ -53,6 +55,20 @@ async def test_quiz_generator_uses_difficulty_and_retries_invalid_output():
     assert 'casos breves' in client.calls[0]['input']
     assert 'DATOS NO CONFIABLES' in quiz_prompt('texto', 'facil')
     assert quiz_schema()['additionalProperties'] is False
+
+
+@pytest.mark.anyio
+async def test_quiz_generator_retries_previous_questions():
+    original = exam_data()
+    variant = exam_data()
+    variant['questions'][0]['statement'] = '¿Cómo cambia la solución jurídica en una situación diferente?'
+    client = Client([json.dumps(original), json.dumps(variant)])
+    old_question = original['questions'][0]['statement']
+    exam = await OpenAIQuizGenerator(Settings(), client).generate(
+        'apunte', 'media', [old_question])
+    assert exam.questions[0].statement == variant['questions'][0]['statement']
+    assert len(client.calls) == 2
+    assert old_question in client.calls[0]['input']
 
 
 def test_exam_rejects_duplicate_options():
@@ -91,6 +107,20 @@ def test_exam_api_hides_answers_and_grades_once():
     assert grade.json()['passed'] is True
     assert grade.json()['results'][0]['correct_index'] == 0
     assert client.post('/api/exams/grade', json=submission).status_code == 410
+
+
+def test_exam_api_passes_previous_questions_and_rejects_malformed_list():
+    fake = FakeQuizGenerator()
+    client = TestClient(create_app(settings=Settings(min_text_chars=5), quiz_generator=fake))
+    previous = ['¿Qué concepto corresponde al supuesto jurídico número 1?']
+    result = client.post('/api/exams', data={'difficulty': 'facil', 'text': 'apunte suficiente',
+                                            'avoid_questions': json.dumps(previous)})
+    assert result.status_code == 200
+    assert fake.previous == [previous]
+    bad = client.post('/api/exams', data={'difficulty': 'facil', 'text': 'apunte suficiente',
+                                         'avoid_questions': '{malformed'})
+    assert bad.status_code == 422
+    assert fake.previous == [previous]
 
 
 def test_exam_api_rejects_invalid_inputs():

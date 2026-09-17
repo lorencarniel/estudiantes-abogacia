@@ -1,4 +1,5 @@
 import asyncio
+import json
 import time
 from collections import defaultdict, deque
 from pathlib import Path
@@ -76,15 +77,24 @@ def create_app(generator=None, settings=None, quiz_generator=None):
 
     @application.post('/api/exams')
     async def create_exam(request: Request, difficulty: Difficulty = Form(...),
-                          pdf: UploadFile | None = File(None), text: str | None = Form(None)):
+                          pdf: UploadFile | None = File(None), text: str | None = Form(None),
+                          avoid_questions: str = Form('[]')):
         if rate_limited(request):
             return JSONResponse(status_code=429, content={
                 'code': 'rate_limited', 'message': 'Demasiadas solicitudes. Intentá nuevamente más tarde.'})
         try:
+            previous = json.loads(avoid_questions)
+            if (not isinstance(previous, list) or len(previous) > 30 or
+                    any(not isinstance(q, str) or len(q) > 500 for q in previous)):
+                raise ValueError('invalid previous questions')
+        except (ValueError, TypeError):
+            return JSONResponse(status_code=422, content={
+                'code': 'invalid_questions', 'message': 'Las preguntas anteriores no son válidas.'})
+        try:
             async with sem:
                 material = await read_material(pdf, text, s)
                 service = quiz_generator or OpenAIQuizGenerator(s)
-                exam = await service.generate(material, difficulty)
+                exam = await service.generate(material, difficulty, previous)
                 return exams.create(exam, difficulty)
         except Exception as exc:
             return error_response(exc)

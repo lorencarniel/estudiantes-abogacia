@@ -3,6 +3,7 @@ let activeExam=null;
 let examTimer=null;
 let examDeadline=0;
 let grading=false;
+let generatingExam=false;
 let completedExams=[];
 
 try{
@@ -60,13 +61,17 @@ function beginExam(exam){
  $('#exam-panel').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-async function startExam(body){
- clearInterval(examTimer);examTimer=null;activeExam=null;$('#exam-panel').hidden=true;renderHistory();
- const response=await fetch('/api/exams',{method:'POST',body});
- const exam=await response.json();
- if(!response.ok)throw new Error(exam.message||'No pudimos generar el examen.');
- const nextNumber=completedExams.reduce((max,entry)=>Math.max(max,Number(entry.series_number)||0),0)+1;
- beginExam({...exam,series_number:nextNumber,attempt:1});
+async function startExam(body,previous=[]){
+ if(generatingExam)throw new Error('Ya estamos generando un examen.');
+ generatingExam=true;renderHistory();
+ try{
+  if(previous.length)body.set('avoid_questions',JSON.stringify(previous));
+  const response=await fetch('/api/exams',{method:'POST',body});
+  const exam=await response.json();
+  if(!response.ok)throw new Error(exam.message||'No pudimos generar el examen.');
+  const nextNumber=completedExams.reduce((max,entry)=>Math.max(max,Number(entry.series_number)||0),0)+1;
+  beginExam({...exam,series_number:nextNumber,attempt:1});
+ }finally{generatingExam=false;renderHistory()}
 }
 
 function selectedAnswers(){
@@ -159,6 +164,27 @@ function startPractice(entry){
  state('success','Práctica iniciada con las mismas preguntas. La corrección aparecerá al entregar.');
 }
 
+async function newQuestions(entry){
+ $('#output-mode').value='exam';
+ $('#output-mode').dispatchEvent(new Event('change'));
+ $('#difficulty').value=entry.exam.difficulty;
+ if(!valid()){
+  state('error','Seleccioná de nuevo el PDF o pegá el texto arriba para generar preguntas nuevas.');
+  $('#material-form').scrollIntoView({behavior:'smooth',block:'start'});
+  return;
+ }
+ const previous=[...new Set(completedExams.filter(item=>item.exam.difficulty===entry.exam.difficulty)
+  .flatMap(item=>item.exam.questions.map(question=>question.statement)))].slice(-30);
+ $('#submit').disabled=true;
+ state('processing','Generando preguntas diferentes con el material seleccionado…');
+ try{
+  await startExam(new FormData($('#material-form')),previous);
+  $('#result').hidden=true;
+  state('success','Examen nuevo listo. Las preguntas anteriores siguen en el historial.');
+ }catch(error){state('error',`${error.message} Volvé a intentarlo.`)}
+ finally{$('#submit').disabled=false}
+}
+
 function renderHistory(){
  const panel=$('#exam-history');panel.hidden=completedExams.length===0;
  const list=$('#history-list');list.replaceChildren();
@@ -171,12 +197,14 @@ function renderHistory(){
   detail.append(title,summary);
   const actions=document.createElement('div');actions.className='history-actions';
   const review=document.createElement('button');review.type='button';review.className='secondary-button';review.textContent='Repasar respuestas';
-  review.disabled=Boolean(activeExam);review.addEventListener('click',()=>showHistoryReview(entry));
+  review.disabled=Boolean(activeExam||generatingExam);review.addEventListener('click',()=>showHistoryReview(entry));
   const practice=document.createElement('button');practice.type='button';practice.textContent='Practicar de nuevo';
-  practice.disabled=Boolean(activeExam);practice.addEventListener('click',()=>startPractice(entry));
-  actions.append(review,practice);card.append(detail,actions);list.append(card);
+  practice.disabled=Boolean(activeExam||generatingExam);practice.addEventListener('click',()=>startPractice(entry));
+  const fresh=document.createElement('button');fresh.type='button';fresh.className='secondary-button';fresh.textContent='Preguntas nuevas';
+  fresh.disabled=Boolean(activeExam||generatingExam);fresh.addEventListener('click',()=>newQuestions(entry));
+  actions.append(review,practice,fresh);card.append(detail,actions);list.append(card);
  });
- $('#clear-history').disabled=Boolean(activeExam);
+ $('#clear-history').disabled=Boolean(activeExam||generatingExam);
 }
 
 $('#exam-form').addEventListener('submit',event=>{event.preventDefault();submitExam()});

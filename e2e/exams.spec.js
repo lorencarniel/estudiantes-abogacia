@@ -55,3 +55,26 @@ test('conserva exámenes anteriores para repasar y practicar otra vez',async({pa
  await page.getByRole('button',{name:'Borrar historial'}).click();
  await expect(page.locator('#exam-history')).toBeHidden();
 });
+
+test('genera preguntas distintas y mantiene disponible el examen anterior',async({page})=>{
+ const requests=[];
+ page.on('request',request=>{
+  if(new URL(request.url()).pathname==='/api/exams')requests.push(request.postData());
+ });
+ await page.goto('/');
+ await page.locator('#output-mode').selectOption('exam');
+ await page.locator('#text').fill('La norma jurídica establece reglas de conducta y prevé consecuencias para ciertos supuestos.');
+ await page.locator('#submit').click();
+ await expect(page.locator('.exam-question')).toHaveCount(10);
+ const original=await page.locator('.exam-question legend').first().textContent();
+ await page.locator('#grade-button').click();
+ await page.getByRole('button',{name:'Preguntas nuevas'}).click();
+ await expect(page.locator('.exam-question')).toHaveCount(10);
+ await expect(page.locator('.exam-question legend').first()).not.toHaveText(original);
+ expect(requests).toHaveLength(2);
+ expect(requests[1]).toContain('avoid_questions');
+ await page.locator('#grade-button').click();
+ await expect(page.locator('.history-card')).toHaveCount(2);
+ await page.locator('.history-card').last().getByRole('button',{name:'Repasar respuestas'}).click();
+ await expect(page.locator('#history-review')).toContainText(original.slice(3));
+});
