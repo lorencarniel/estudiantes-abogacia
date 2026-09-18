@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts           Account[]
+  sessions           Session[]
+  profile            Profile?
+  generatedContent   GeneratedContent[]
+  quizAttempts       QuizAttempt[]
+  flashcardDecks     FlashcardDeck[]
+  studySchedules     StudySchedule[]
+  audioExplanations  AudioExplanation[]
+  gameSessions       GameSession[]
+  videoExplanations  VideoExplanation[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Profile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  university String?
+  careerYear Int?
+  subjects   String   @default("[]")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model GeneratedContent {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  title      String
+  content    String
+  sourceText String
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("generated_contents")
+}
+
+model QuizAttempt {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  difficulty  String
+  questions   String
+  answers     String?
+  score       Int?
+  total       Int
+  passed      Boolean?
+  sourceText  String
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("quiz_attempts")
+}
+
+model FlashcardDeck {
+  id         String      @id @default(cuid())
+  userId     String
+  title      String
+  sourceText String
+  createdAt  DateTime    @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcards Flashcard[]
+
+  @@index([userId])
+  @@map("flashcard_decks")
+}
+
+model Flashcard {
+  id          String   @id @default(cuid())
+  deckId      String
+  front       String
+  back        String
+  interval    Int      @default(0)
+  repetitions Int      @default(0)
+  easeFactor  Float    @default(2.5)
+  nextReview  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  deck FlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@index([deckId])
+  @@map("flashcards")
+}
+
+model StudySchedule {
+  id            String   @id @default(cuid())
+  userId        String
+  title         String
+  examDate      DateTime
+  hoursPerDay   Float
+  subjects      String
+  schedule      String
+  completedDays String   @default("[]")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("study_schedules")
+}
+
+model AudioExplanation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  script    String
+  fileName  String
+  duration  Int      @default(0)
+  voice     String   @default("nova")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("audio_explanations")
+}
+
+model GameSession {
+  id          String    @id @default(cuid())
+  userId      String
+  gameType    String
+  title       String
+  questions   String
+  answers     String?
+  score       Int?
+  total       Int
+  streak      Int       @default(0)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("game_sessions")
+}
+
+model VideoExplanation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  slides    String
+  script    String
+  fileName  String
+  duration  Int      @default(0)
+  voice     String   @default("nova")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("video_explanations")
+}
