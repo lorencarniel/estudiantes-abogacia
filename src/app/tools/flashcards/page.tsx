@@ -63,14 +63,14 @@ export default function FlashcardsPage() {
     if (status === "authenticated") fetchDecks();
   }, [status, fetchDecks]);
 
-  async function handleGenerate(text: string) {
+  async function handleGenerate(text: string, syllabusId?: string) {
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/ai/flashcards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, syllabusId }),
       });
       const data = await res.json();
       if (!res.ok) {

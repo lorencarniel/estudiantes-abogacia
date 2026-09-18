@@ -69,6 +69,13 @@ const tools = [
     href: "/tools/videos",
     available: true,
   },
+  {
+    icon: "📋",
+    title: "Programas",
+    description: "Cargá el programa oficial de cada materia para guiar a la IA.",
+    href: "/tools/syllabus",
+    available: true,
+  },
 ];
 
 const TYPE_ICONS: Record<string, string> = {

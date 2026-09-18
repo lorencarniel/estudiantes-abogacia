@@ -77,14 +77,14 @@ export default function AudiosPage() {
     };
   }, []);
 
-  async function handleGenerate(text: string) {
+  async function handleGenerate(text: string, syllabusId?: string) {
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/ai/audio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, voice }),
+        body: JSON.stringify({ text, voice, syllabusId }),
       });
       const data = await res.json();
       if (!res.ok) {

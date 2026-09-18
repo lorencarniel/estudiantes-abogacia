@@ -24,7 +24,7 @@ export default function SummariesPage() {
     if (status === "unauthenticated") router.push("/auth/login");
   }, [status, router]);
 
-  async function handleGenerate(text: string) {
+  async function handleGenerate(text: string, syllabusId?: string) {
     setLoading(true);
     setError("");
     setResult(null);
@@ -33,7 +33,7 @@ export default function SummariesPage() {
       const res = await fetch("/api/ai/summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, level }),
+        body: JSON.stringify({ text, level, syllabusId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);

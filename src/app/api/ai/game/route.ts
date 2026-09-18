@@ -8,6 +8,7 @@ import {
   triviaGameSchema,
   trueFalseGamePrompt,
   trueFalseGameSchema,
+  ExamType,
 } from "@/lib/prompts";
 
 export async function POST(request: Request) {
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { text, gameType } = body;
+  const { text, gameType, examType, syllabusId } = body;
 
   if (!text || text.length < 80) {
     return NextResponse.json(
@@ -40,11 +41,23 @@ export async function POST(request: Request) {
     );
   }
 
+  let syllabusContent: string | undefined;
+  if (syllabusId) {
+    const syllabus = await prisma.syllabus.findFirst({
+      where: { id: syllabusId, userId: session.user.id },
+    });
+    if (syllabus) syllabusContent = syllabus.content;
+  }
+
+  const validExamType = ["parcial", "final", "libre"].includes(examType)
+    ? (examType as ExamType)
+    : undefined;
+
   try {
     const isTrivia = gameType === "trivia";
     const prompt = isTrivia
-      ? triviaGamePrompt(text)
-      : trueFalseGamePrompt(text);
+      ? triviaGamePrompt(text, validExamType, syllabusContent)
+      : trueFalseGamePrompt(text, validExamType, syllabusContent);
     const schema = isTrivia ? triviaGameSchema : trueFalseGameSchema;
 
     const completion = await openai.chat.completions.create({
@@ -85,6 +98,7 @@ export async function POST(request: Request) {
       data: {
         userId: session.user.id,
         gameType,
+        examType: validExamType || null,
         title: raw.title,
         questions: JSON.stringify(questions),
         total: questions.length,

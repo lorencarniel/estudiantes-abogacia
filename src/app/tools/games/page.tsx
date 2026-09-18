@@ -53,6 +53,7 @@ export default function GamesPage() {
 
   const [gameState, setGameState] = useState<GameState>("setup");
   const [gameType, setGameType] = useState<"trivia" | "true_false">("trivia");
+  const [examType, setExamType] = useState<"parcial" | "final" | "libre">("parcial");
   const [error, setError] = useState("");
   const [game, setGame] = useState<GameData | null>(null);
   const [games, setGames] = useState<GameRecord[]>([]);
@@ -182,14 +183,14 @@ export default function GamesPage() {
     } catch { /* ignore */ }
   }
 
-  async function handleGenerate(text: string) {
+  async function handleGenerate(text: string, syllabusId?: string) {
     setGameState("loading");
     setError("");
     try {
       const res = await fetch("/api/ai/game", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, gameType }),
+        body: JSON.stringify({ text, gameType, examType, syllabusId }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -553,6 +554,22 @@ export default function GamesPage() {
               {TRUE_FALSE_TIME}s por afirmación
             </p>
           </button>
+        </div>
+
+        <div className="mb-6">
+          <label htmlFor="examType" className="block text-sm font-medium text-gray-700 mb-1">
+            Tipo de examen
+          </label>
+          <select
+            id="examType"
+            className="input-field"
+            value={examType}
+            onChange={(e) => setExamType(e.target.value as "parcial" | "final" | "libre")}
+          >
+            <option value="parcial">Parcial - temas puntuales</option>
+            <option value="final">Final - integrador</option>
+            <option value="libre">Libre - dificultad maxima</option>
+          </select>
         </div>
 
         <MaterialInput

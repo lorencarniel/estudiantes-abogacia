@@ -29,7 +29,7 @@ export default function OutlinesPage() {
     if (status === "unauthenticated") router.push("/auth/login");
   }, [status, router]);
 
-  async function handleGenerate(text: string) {
+  async function handleGenerate(text: string, syllabusId?: string) {
     setLoading(true);
     setError("");
     setResult(null);
@@ -39,7 +39,7 @@ export default function OutlinesPage() {
       const res = await fetch("/api/ai/outline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, syllabusId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);

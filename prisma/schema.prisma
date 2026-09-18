@@ -27,6 +27,7 @@ model User {
   audioExplanations  AudioExplanation[]
   gameSessions       GameSession[]
   videoExplanations  VideoExplanation[]
+  syllabi            Syllabus[]
 
   @@map("users")
 }
@@ -105,6 +106,7 @@ model QuizAttempt {
   userId      String
   title       String
   difficulty  String
+  examType    String?
   questions   String
   answers     String?
   score       Int?
@@ -189,6 +191,7 @@ model GameSession {
   id          String    @id @default(cuid())
   userId      String
   gameType    String
+  examType    String?
   title       String
   questions   String
   answers     String?
@@ -219,4 +222,18 @@ model VideoExplanation {
 
   @@index([userId])
   @@map("video_explanations")
+}
+
+model Syllabus {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  content   String
+  fileName  String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("syllabi")
 }

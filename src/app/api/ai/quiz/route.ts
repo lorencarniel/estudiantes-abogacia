@@ -3,12 +3,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
-import { quizPrompt, quizSchema } from "@/lib/prompts";
+import { quizPrompt, quizSchema, ExamType } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
   difficulty: z.enum(["facil", "media", "dificil"]),
+  examType: z.enum(["parcial", "final", "libre"]).optional(),
+  syllabusId: z.string().optional(),
 });
 
 const gradeSchema = z.object({
@@ -28,14 +30,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const { text, difficulty } = parsed.data;
+  const { text, difficulty, examType, syllabusId } = parsed.data;
+
+  let syllabusContent: string | undefined;
+  if (syllabusId) {
+    const syllabus = await prisma.syllabus.findFirst({
+      where: { id: syllabusId, userId: session.user.id },
+    });
+    if (syllabus) syllabusContent = syllabus.content;
+  }
 
   try {
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: quizPrompt(text, difficulty) },
+        { role: "user", content: quizPrompt(text, difficulty, [], examType as ExamType | undefined, syllabusContent) },
       ],
       response_format: {
         type: "json_schema",
@@ -50,8 +60,9 @@ export async function POST(request: Request) {
     const quiz = await prisma.quizAttempt.create({
       data: {
         userId: session.user.id,
-        title: `Cuestionario - ${difficulty}`,
+        title: `Cuestionario - ${difficulty}${examType ? ` (${examType})` : ""}`,
         difficulty,
+        examType: examType || null,
         questions: JSON.stringify(content.questions),
         total: 10,
         sourceText: text.substring(0, 500),

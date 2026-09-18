@@ -1,12 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+
+interface SyllabusOption {
+  id: string;
+  title: string;
+}
 
 interface MaterialInputProps {
-  onSubmit: (text: string) => void;
+  onSubmit: (text: string, syllabusId?: string) => void;
   loading: boolean;
   buttonLabel?: string;
   children?: React.ReactNode;
+  showSyllabus?: boolean;
 }
 
 export default function MaterialInput({
@@ -14,6 +20,7 @@ export default function MaterialInput({
   loading,
   buttonLabel = "Generar",
   children,
+  showSyllabus = true,
 }: MaterialInputProps) {
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"text" | "file">("text");
@@ -24,11 +31,25 @@ export default function MaterialInput({
   const [uploadError, setUploadError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [syllabi, setSyllabi] = useState<SyllabusOption[]>([]);
+  const [selectedSyllabus, setSelectedSyllabus] = useState("");
+
+  useEffect(() => {
+    if (showSyllabus) {
+      fetch("/api/syllabus")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.syllabi) setSyllabi(data.syllabi);
+        })
+        .catch(() => {});
+    }
+  }, [showSyllabus]);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = text.trim();
     if (trimmed.length < 80) return;
-    onSubmit(trimmed);
+    onSubmit(trimmed, selectedSyllabus || undefined);
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -86,6 +107,29 @@ export default function MaterialInput({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {children}
+
+      {showSyllabus && syllabi.length > 0 && (
+        <div>
+          <label htmlFor="syllabus-select" className="block text-sm font-medium text-gray-700 mb-1">
+            Programa de la materia (opcional)
+          </label>
+          <select
+            id="syllabus-select"
+            className="input-field"
+            value={selectedSyllabus}
+            onChange={(e) => setSelectedSyllabus(e.target.value)}
+            disabled={busy}
+          >
+            <option value="">Sin programa</option>
+            {syllabi.map((s) => (
+              <option key={s.id} value={s.id}>{s.title}</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">
+            Si seleccionás un programa, la IA organizará el contenido según sus unidades
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-2 border-b border-gray-200 mb-2">
         <button

@@ -37,7 +37,7 @@ export default function ConceptMapsPage() {
     return null;
   }
 
-  const handleGenerate = useCallback(async (text: string) => {
+  const handleGenerate = useCallback(async (text: string, syllabusId?: string) => {
     setLoading(true);
     setError("");
     setMapData(null);
@@ -46,7 +46,7 @@ export default function ConceptMapsPage() {
       const res = await fetch("/api/ai/concept-map", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, syllabusId }),
       });
 
       const data = await res.json();

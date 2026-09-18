@@ -56,6 +56,7 @@ export default function QuizzesPage() {
   const [grading, setGrading] = useState(false);
   const [error, setError] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty>("media");
+  const [examType, setExamType] = useState<"parcial" | "final" | "libre">("parcial");
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [results, setResults] = useState<GradeData | null>(null);
@@ -82,7 +83,7 @@ export default function QuizzesPage() {
     return () => clearInterval(timer);
   }, [quiz, results, timeLeft]);
 
-  async function handleGenerate(text: string) {
+  async function handleGenerate(text: string, syllabusId?: string) {
     setLoading(true);
     setError("");
     setQuiz(null);
@@ -92,7 +93,7 @@ export default function QuizzesPage() {
       const res = await fetch("/api/ai/quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, difficulty }),
+        body: JSON.stringify({ text, difficulty, examType, syllabusId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -173,21 +174,39 @@ export default function QuizzesPage() {
             loading={loading}
             buttonLabel="Generar cuestionario"
           >
-            <div>
-              <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1">
-                Dificultad
-              </label>
-              <select
-                id="difficulty"
-                className="input-field"
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-                disabled={loading}
-              >
-                {Object.entries(DIFFICULTY_LABELS).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1">
+                  Dificultad
+                </label>
+                <select
+                  id="difficulty"
+                  className="input-field"
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+                  disabled={loading}
+                >
+                  {Object.entries(DIFFICULTY_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="examType" className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo de examen
+                </label>
+                <select
+                  id="examType"
+                  className="input-field"
+                  value={examType}
+                  onChange={(e) => setExamType(e.target.value as "parcial" | "final" | "libre")}
+                  disabled={loading}
+                >
+                  <option value="parcial">Parcial - temas puntuales</option>
+                  <option value="final">Final - integrador</option>
+                  <option value="libre">Libre - dificultad maxima</option>
+                </select>
+              </div>
             </div>
           </MaterialInput>
         </div>

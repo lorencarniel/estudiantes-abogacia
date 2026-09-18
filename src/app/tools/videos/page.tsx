@@ -138,14 +138,14 @@ export default function VideosPage() {
     return () => window.removeEventListener("keydown", handleKey);
   });
 
-  async function handleGenerate(text: string) {
+  async function handleGenerate(text: string, syllabusId?: string) {
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/ai/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, voice }),
+        body: JSON.stringify({ text, voice, syllabusId }),
       });
       const data = await res.json();
       if (!res.ok) {

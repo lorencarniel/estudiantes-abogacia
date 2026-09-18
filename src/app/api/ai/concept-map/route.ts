@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
+  syllabusId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -22,14 +23,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Texto inválido (mínimo 80 caracteres)" }, { status: 400 });
   }
 
-  const { text } = parsed.data;
+  const { text, syllabusId } = parsed.data;
+
+  let syllabusContent: string | undefined;
+  if (syllabusId) {
+    const syllabus = await prisma.syllabus.findFirst({
+      where: { id: syllabusId, userId: session.user.id },
+    });
+    if (syllabus) syllabusContent = syllabus.content;
+  }
 
   try {
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: conceptMapPrompt(text) },
+        { role: "user", content: conceptMapPrompt(text, syllabusContent) },
       ],
       response_format: {
         type: "json_schema",

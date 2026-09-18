@@ -13,6 +13,7 @@ const VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"] as const;
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
   voice: z.enum(VOICES).optional().default("nova"),
+  syllabusId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -27,14 +28,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Texto inválido (mínimo 80 caracteres)" }, { status: 400 });
   }
 
-  const { text, voice } = parsed.data;
+  const { text, voice, syllabusId } = parsed.data;
+
+  let syllabusContent: string | undefined;
+  if (syllabusId) {
+    const syllabus = await prisma.syllabus.findFirst({
+      where: { id: syllabusId, userId: session.user.id },
+    });
+    if (syllabus) syllabusContent = syllabus.content;
+  }
 
   try {
     const scriptResponse = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: audioScriptPrompt(text) },
+        { role: "user", content: audioScriptPrompt(text, syllabusContent) },
       ],
       response_format: {
         type: "json_schema",

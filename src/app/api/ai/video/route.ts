@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { text, voice = "nova" } = body;
+  const { text, voice = "nova", syllabusId } = body;
 
   if (!text || text.length < 80) {
     return NextResponse.json(
@@ -37,12 +37,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Voz inválida" }, { status: 400 });
   }
 
+  let syllabusContent: string | undefined;
+  if (syllabusId) {
+    const syllabus = await prisma.syllabus.findFirst({
+      where: { id: syllabusId, userId: session.user.id },
+    });
+    if (syllabus) syllabusContent = syllabus.content;
+  }
+
   try {
     const completion = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: videoSlidesPrompt(text) },
+        { role: "user", content: videoSlidesPrompt(text, syllabusContent) },
       ],
       response_format: {
         type: "json_schema",
