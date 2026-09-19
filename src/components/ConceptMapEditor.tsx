@@ -45,16 +45,22 @@ const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string
   norma: { bg: "#fce7f3", border: "#ec4899", text: "#9d174d", mini: "#ec4899" },
 };
 
-const NODE_WIDTH = 170;
+const BASE_NODE_WIDTH = 140;
 const NODE_HEIGHT = 50;
+const CHAR_WIDTH = 7.5;
+
+function getNodeWidth(label: string): number {
+  const textWidth = label.length * CHAR_WIDTH + 32;
+  return Math.max(BASE_NODE_WIDTH, Math.min(textWidth, 280));
+}
 
 function layoutNodes(rawNodes: MapNodeData[], rawEdges: MapEdgeData[]): Node[] {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "TB", nodesep: 60, ranksep: 100, marginx: 40, marginy: 40 });
+  g.setGraph({ rankdir: "TB", nodesep: 120, ranksep: 160, marginx: 50, marginy: 50 });
 
   for (const n of rawNodes) {
-    g.setNode(n.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    g.setNode(n.id, { width: getNodeWidth(n.label), height: NODE_HEIGHT });
   }
   for (const e of rawEdges) {
     g.setEdge(e.source, e.target);
@@ -64,11 +70,12 @@ function layoutNodes(rawNodes: MapNodeData[], rawEdges: MapEdgeData[]): Node[] {
 
   return rawNodes.map((n) => {
     const pos = g.node(n.id);
+    const w = getNodeWidth(n.label);
     const colors = CATEGORY_COLORS[n.category] || CATEGORY_COLORS.secundario;
     return {
       id: n.id,
       type: "concept",
-      position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 },
+      position: { x: pos.x - w / 2, y: pos.y - NODE_HEIGHT / 2 },
       data: { label: n.label, category: n.category, colors },
     };
   });
@@ -80,7 +87,7 @@ function buildEdges(rawEdges: MapEdgeData[]): Edge[] {
     source: e.source,
     target: e.target,
     label: e.label,
-    type: "default",
+    type: "smoothstep",
     animated: false,
     style: { stroke: "#94a3b8", strokeWidth: 2 },
     labelStyle: { fontSize: 11, fontWeight: 500, fill: "#475569" },

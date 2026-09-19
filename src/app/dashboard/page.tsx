@@ -76,6 +76,13 @@ const tools = [
     href: "/tools/syllabus",
     available: true,
   },
+  {
+    icon: "📂",
+    title: "Mis apuntes",
+    description: "Guardá tus apuntes para reutilizarlos en cualquier herramienta.",
+    href: "/tools/materials",
+    available: true,
+  },
 ];
 
 const TYPE_ICONS: Record<string, string> = {

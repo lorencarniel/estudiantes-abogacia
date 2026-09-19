@@ -28,6 +28,7 @@ model User {
   gameSessions       GameSession[]
   videoExplanations  VideoExplanation[]
   syllabi            Syllabus[]
+  materials          Material[]
 
   @@map("users")
 }
@@ -236,4 +237,19 @@ model Syllabus {
 
   @@index([userId])
   @@map("syllabi")
+}
+
+model Material {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  fileName  String?
+  content   String
+  charCount Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("materials")
 }

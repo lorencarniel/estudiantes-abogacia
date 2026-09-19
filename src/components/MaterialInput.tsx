@@ -7,6 +7,14 @@ interface SyllabusOption {
   title: string;
 }
 
+interface SavedMaterial {
+  id: string;
+  title: string;
+  fileName: string | null;
+  charCount: number;
+  createdAt: string;
+}
+
 interface MaterialInputProps {
   onSubmit: (text: string, syllabusId?: string) => void;
   loading: boolean;
@@ -23,7 +31,7 @@ export default function MaterialInput({
   showSyllabus = true,
 }: MaterialInputProps) {
   const [text, setText] = useState("");
-  const [mode, setMode] = useState<"text" | "file">("text");
+  const [mode, setMode] = useState<"text" | "file" | "saved">("text");
   const [fileName, setFileName] = useState("");
   const [fileCharCount, setFileCharCount] = useState(0);
   const [fileReady, setFileReady] = useState(false);
@@ -33,6 +41,16 @@ export default function MaterialInput({
 
   const [syllabi, setSyllabi] = useState<SyllabusOption[]>([]);
   const [selectedSyllabus, setSelectedSyllabus] = useState("");
+
+  const [materials, setMaterials] = useState<SavedMaterial[]>([]);
+  const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<string | null>(null);
+  const [loadingContent, setLoadingContent] = useState(false);
+
+  const [saving, setSaving] = useState(false);
+  const [saveTitle, setSaveTitle] = useState("");
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState("");
 
   useEffect(() => {
     if (showSyllabus) {
@@ -44,6 +62,40 @@ export default function MaterialInput({
         .catch(() => {});
     }
   }, [showSyllabus]);
+
+  function fetchMaterials() {
+    setLoadingMaterials(true);
+    fetch("/api/materials")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.materials) setMaterials(data.materials);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMaterials(false));
+  }
+
+  useEffect(() => {
+    if (mode === "saved") fetchMaterials();
+  }, [mode]);
+
+  async function loadMaterial(id: string) {
+    setLoadingContent(true);
+    setSelectedMaterial(id);
+    try {
+      const res = await fetch(`/api/materials/${id}`);
+      const data = await res.json();
+      if (res.ok && data.content) {
+        setText(data.content);
+        setFileName(data.fileName || data.title);
+        setFileCharCount(data.charCount);
+        setFileReady(true);
+      }
+    } catch {
+      setUploadError("Error al cargar el apunte");
+    } finally {
+      setLoadingContent(false);
+    }
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -98,11 +150,47 @@ export default function MaterialInput({
     setFileCharCount(0);
     setText("");
     setUploadError("");
+    setSelectedMaterial(null);
+    setSaveSuccess("");
+  }
+
+  async function handleSaveMaterial() {
+    if (!saveTitle.trim() || text.trim().length < 80) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/materials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: saveTitle.trim(),
+          content: text.trim(),
+          fileName: fileName || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSaveSuccess("Apunte guardado");
+        setShowSaveForm(false);
+        setSaveTitle("");
+      } else {
+        setUploadError(data.error || "Error al guardar");
+      }
+    } catch {
+      setUploadError("Error de conexión al guardar");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const charCount = text.trim().length;
   const isValid = charCount >= 80;
-  const busy = loading || uploading;
+  const busy = loading || uploading || loadingContent;
+
+  const tabs = [
+    { key: "text" as const, label: "Pegar texto" },
+    { key: "file" as const, label: "Subir archivo" },
+    { key: "saved" as const, label: "Mis apuntes" },
+  ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -131,32 +219,75 @@ export default function MaterialInput({
         </div>
       )}
 
-      <div className="flex gap-2 border-b border-gray-200 mb-2">
-        <button
-          type="button"
-          onClick={() => setMode("text")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            mode === "text"
-              ? "border-primary-600 text-primary-700"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
-          disabled={busy}
-        >
-          Pegar texto
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("file")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            mode === "file"
-              ? "border-primary-600 text-primary-700"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
-          disabled={busy}
-        >
-          Subir archivo
-        </button>
+      <div className="flex gap-1 border-b border-gray-200 mb-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setMode(tab.key)}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+              mode === tab.key
+                ? "border-primary-600 text-primary-700"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+            disabled={busy}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
+
+      {mode === "saved" && (
+        <div className="space-y-3">
+          {loadingMaterials ? (
+            <div className="flex justify-center py-6">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
+            </div>
+          ) : selectedMaterial && fileReady ? (
+            <div className="border-2 border-green-300 bg-green-50 rounded-lg p-6 text-center">
+              <p className="text-4xl mb-3">📄</p>
+              <p className="text-green-800 font-semibold mb-1">{fileName}</p>
+              <p className="text-green-600 text-sm">
+                Apunte cargado ({fileCharCount.toLocaleString()} caracteres)
+              </p>
+              <button
+                type="button"
+                onClick={handleRemoveFile}
+                className="mt-3 text-xs text-red-500 hover:text-red-700 font-medium"
+              >
+                Cambiar apunte
+              </button>
+            </div>
+          ) : materials.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-3xl mb-2">📂</p>
+              <p className="text-sm">No tenés apuntes guardados.</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Subí un archivo o pegá texto y guardalo para reutilizarlo.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {materials.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => loadMaterial(m.id)}
+                  disabled={loadingContent}
+                  className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors"
+                >
+                  <p className="font-medium text-gray-900 text-sm truncate">{m.title}</p>
+                  <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                    {m.fileName && <span>{m.fileName}</span>}
+                    <span>{m.charCount.toLocaleString()} chars</span>
+                    <span>{new Date(m.createdAt).toLocaleDateString("es-AR")}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {mode === "file" && (
         <div className="space-y-3">
@@ -232,6 +363,7 @@ export default function MaterialInput({
               setText(e.target.value);
               setFileReady(false);
               setFileName("");
+              setSaveSuccess("");
             }}
             disabled={busy}
           />
@@ -245,6 +377,61 @@ export default function MaterialInput({
         </div>
       )}
 
+      {isValid && mode !== "saved" && !saveSuccess && (
+        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+          {showSaveForm ? (
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label htmlFor="save-title" className="block text-xs font-medium text-gray-600 mb-1">
+                  Nombre del apunte
+                </label>
+                <input
+                  id="save-title"
+                  type="text"
+                  className="input-field text-sm"
+                  placeholder="Ej: Derecho Civil - Obligaciones"
+                  value={saveTitle}
+                  onChange={(e) => setSaveTitle(e.target.value)}
+                  maxLength={100}
+                  disabled={saving}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveMaterial}
+                disabled={saving || !saveTitle.trim()}
+                className="btn-primary text-sm py-2 px-4 whitespace-nowrap"
+              >
+                {saving ? "Guardando..." : "Guardar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowSaveForm(false); setSaveTitle(""); }}
+                className="text-gray-400 hover:text-gray-600 text-sm py-2 px-2"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowSaveForm(true)}
+              className="text-sm text-primary-600 hover:text-primary-800 font-medium"
+            >
+              💾 Guardar apunte para reutilizar
+            </button>
+          )}
+        </div>
+      )}
+
+      {saveSuccess && (
+        <p className="text-green-600 text-sm font-medium">✓ {saveSuccess}</p>
+      )}
+
+      {uploadError && mode !== "file" && (
+        <p className="text-red-600 text-sm font-medium">{uploadError}</p>
+      )}
+
       <button
         type="submit"
         className="btn-primary w-full sm:w-auto"
@@ -253,7 +440,7 @@ export default function MaterialInput({
         {busy ? (
           <span className="flex items-center justify-center gap-2">
             <span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-            {uploading ? "Procesando archivo..." : "Generando..."}
+            {uploading ? "Procesando archivo..." : loadingContent ? "Cargando apunte..." : "Generando..."}
           </span>
         ) : (
           buttonLabel

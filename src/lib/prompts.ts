@@ -164,12 +164,15 @@ export function quizPrompt(
 export function conceptMapPrompt(text: string, syllabus?: string): string {
   return (
     `${BASE_RULES} ` +
-    "Generá un mapa conceptual basado exclusivamente en el apunte. " +
-    "Identificá entre 6 y 15 conceptos clave y las relaciones entre ellos. " +
-    "Cada nodo debe tener un id único (n1, n2...), un label corto (máximo 5 palabras) y una categoría " +
-    "(principal, secundario, definicion, ejemplo, norma). " +
-    "Si el material menciona artículos o leyes, usá la categoría 'norma' para esos nodos. " +
-    "Cada conexión (edge) debe tener source, target y un label que describa la relación (máximo 4 palabras). " +
+    "Generá un mapa conceptual JERÁRQUICO basado exclusivamente en el apunte. " +
+    "Reglas de estructura:\n" +
+    "- El primer nodo (n1) debe ser el concepto PRINCIPAL/central del tema, con categoría 'principal'.\n" +
+    "- Usá entre 8 y 12 nodos (no más de 12).\n" +
+    "- Organizá en niveles: principal (1 nodo) → secundarios (2-4 nodos) → definiciones/ejemplos/normas.\n" +
+    "- Las conexiones deben fluir de arriba hacia abajo (del concepto general al específico). Evitá conexiones cruzadas entre nodos del mismo nivel.\n" +
+    "- Cada nodo tiene id único (n1, n2...), label corto (máximo 5 palabras) y categoría (principal, secundario, definicion, ejemplo, norma).\n" +
+    "- Si el material menciona artículos o leyes, usá la categoría 'norma'.\n" +
+    "- Cada edge tiene source, target y label descriptivo (máximo 4 palabras).\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
@@ -484,6 +487,126 @@ export const quizSchema = {
             items: { type: "string" as const },
           },
           correct_index: { type: "integer" as const, minimum: 0, maximum: 3 },
+          explanation: { type: "string" as const },
+        },
+      },
+    },
+  },
+};
+
+export function matchingGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examInstruction}` +
+    "Creá un juego de RELACIONAR PARES basado exclusivamente en el apunte. " +
+    "Generá exactamente 8 pares donde cada par tiene un concepto/término (left) y su definición/consecuencia/artículo correspondiente (right). " +
+    "Los pares deben cubrir distintos aspectos del material: definiciones, artículos, plazos, consecuencias jurídicas, sujetos. " +
+    "Cada 'left' debe ser breve (máximo 4 palabras). Cada 'right' debe ser claro y conciso (máximo 10 palabras). " +
+    "Los pares deben ser lo suficientemente distintos para que no haya ambigüedad. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const matchingGameSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "pairs"],
+  properties: {
+    title: { type: "string" as const },
+    pairs: {
+      type: "array" as const,
+      minItems: 8,
+      maxItems: 8,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["left", "right"],
+        properties: {
+          left: { type: "string" as const },
+          right: { type: "string" as const },
+        },
+      },
+    },
+  },
+};
+
+export function orderingGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examInstruction}` +
+    "Creá un juego de ORDENAR SECUENCIA basado exclusivamente en el apunte. " +
+    "Generá una descripción breve del tipo de secuencia (ej: 'Ordená las etapas del proceso penal') " +
+    "y exactamente 6 items que tienen un orden correcto lógico, cronológico o jerárquico. " +
+    "Pueden ser: etapas de un proceso, jerarquía normativa, pasos de un procedimiento, evolución de un instituto jurídico. " +
+    "Cada item tiene 'text' (descripción breve, máximo 8 palabras) y 'correct_position' (número 0 a 5, siendo 0 el primero). " +
+    "Incluí una explicación general de por qué ese es el orden correcto. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const orderingGameSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "description", "items", "explanation"],
+  properties: {
+    title: { type: "string" as const },
+    description: { type: "string" as const },
+    items: {
+      type: "array" as const,
+      minItems: 6,
+      maxItems: 6,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["text", "correct_position"],
+        properties: {
+          text: { type: "string" as const },
+          correct_position: { type: "integer" as const, minimum: 0, maximum: 5 },
+        },
+      },
+    },
+    explanation: { type: "string" as const },
+  },
+};
+
+export function fillBlankGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examInstruction}` +
+    "Creá un juego de COMPLETAR ESPACIOS EN BLANCO basado exclusivamente en el apunte. " +
+    "Generá exactamente 8 oraciones extraídas o basadas en el material donde falta una palabra o frase clave. " +
+    "Usá '___' para marcar el espacio en blanco en 'text_with_blank'. " +
+    "Las palabras faltantes deben ser términos jurídicos clave, plazos, artículos o conceptos importantes del material. " +
+    "Cada item tiene: text_with_blank (oración con ___), answer (respuesta correcta), hint (pista de 2-3 palabras) y explanation (breve). " +
+    "La respuesta debe ser una palabra o frase corta (máximo 4 palabras). " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const fillBlankGameSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "sentences"],
+  properties: {
+    title: { type: "string" as const },
+    sentences: {
+      type: "array" as const,
+      minItems: 8,
+      maxItems: 8,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["text_with_blank", "answer", "hint", "explanation"],
+        properties: {
+          text_with_blank: { type: "string" as const },
+          answer: { type: "string" as const },
+          hint: { type: "string" as const },
           explanation: { type: "string" as const },
         },
       },

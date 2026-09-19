@@ -8,8 +8,28 @@ import {
   triviaGameSchema,
   trueFalseGamePrompt,
   trueFalseGameSchema,
+  matchingGamePrompt,
+  matchingGameSchema,
+  orderingGamePrompt,
+  orderingGameSchema,
+  fillBlankGamePrompt,
+  fillBlankGameSchema,
   ExamType,
 } from "@/lib/prompts";
+
+const VALID_GAME_TYPES = ["trivia", "true_false", "matching", "ordering", "fill_blank"] as const;
+
+const GAME_REGISTRY: Record<string, {
+  prompt: (text: string, examType?: ExamType, syllabus?: string) => string;
+  schema: Record<string, unknown>;
+  schemaName: string;
+}> = {
+  trivia: { prompt: triviaGamePrompt, schema: triviaGameSchema, schemaName: "trivia_game" },
+  true_false: { prompt: trueFalseGamePrompt, schema: trueFalseGameSchema, schemaName: "true_false_game" },
+  matching: { prompt: matchingGamePrompt, schema: matchingGameSchema, schemaName: "matching_game" },
+  ordering: { prompt: orderingGamePrompt, schema: orderingGameSchema, schemaName: "ordering_game" },
+  fill_blank: { prompt: fillBlankGamePrompt, schema: fillBlankGameSchema, schemaName: "fill_blank_game" },
+};
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -23,22 +43,19 @@ export async function POST(request: Request) {
   if (!text || text.length < 80) {
     return NextResponse.json(
       { error: "El texto debe tener al menos 80 caracteres" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (text.length > MAX_INPUT_LENGTH) {
     return NextResponse.json(
       { error: `El texto supera el límite de ${MAX_INPUT_LENGTH.toLocaleString()} caracteres` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  if (!["trivia", "true_false"].includes(gameType)) {
-    return NextResponse.json(
-      { error: "Tipo de juego inválido" },
-      { status: 400 }
-    );
+  if (!VALID_GAME_TYPES.includes(gameType)) {
+    return NextResponse.json({ error: "Tipo de juego inválido" }, { status: 400 });
   }
 
   let syllabusContent: string | undefined;
@@ -54,11 +71,8 @@ export async function POST(request: Request) {
     : undefined;
 
   try {
-    const isTrivia = gameType === "trivia";
-    const prompt = isTrivia
-      ? triviaGamePrompt(text, validExamType, syllabusContent)
-      : trueFalseGamePrompt(text, validExamType, syllabusContent);
-    const schema = isTrivia ? triviaGameSchema : trueFalseGameSchema;
+    const reg = GAME_REGISTRY[gameType];
+    const prompt = reg.prompt(text, validExamType, syllabusContent);
 
     const completion = await openai.chat.completions.create({
       model: AI_MODEL,
@@ -69,9 +83,9 @@ export async function POST(request: Request) {
       response_format: {
         type: "json_schema",
         json_schema: {
-          name: isTrivia ? "trivia_game" : "true_false_game",
+          name: reg.schemaName,
           strict: true,
-          schema,
+          schema: reg.schema,
         },
       },
       temperature: 0.7,
@@ -81,17 +95,30 @@ export async function POST(request: Request) {
     const raw = JSON.parse(completion.choices[0].message.content || "{}");
 
     let questions;
-    if (isTrivia) {
+    let total: number;
+
+    if (gameType === "trivia") {
       questions = raw.questions;
-    } else {
+      total = questions.length;
+    } else if (gameType === "true_false") {
       questions = raw.statements.map(
         (s: { statement: string; is_true: boolean; explanation: string }) => ({
           statement: s.statement,
           options: ["Verdadero", "Falso"],
           correct_index: s.is_true ? 0 : 1,
           explanation: s.explanation,
-        })
+        }),
       );
+      total = questions.length;
+    } else if (gameType === "matching") {
+      questions = raw.pairs;
+      total = raw.pairs.length;
+    } else if (gameType === "ordering") {
+      questions = raw.items;
+      total = raw.items.length;
+    } else {
+      questions = raw.sentences;
+      total = raw.sentences.length;
     }
 
     const gameSession = await prisma.gameSession.create({
@@ -101,7 +128,7 @@ export async function POST(request: Request) {
         examType: validExamType || null,
         title: raw.title,
         questions: JSON.stringify(questions),
-        total: questions.length,
+        total,
       },
     });
 
@@ -110,13 +137,15 @@ export async function POST(request: Request) {
       gameType,
       title: raw.title,
       questions,
-      total: questions.length,
+      total,
+      description: raw.description,
+      explanation: raw.explanation,
     });
   } catch (err) {
     console.error("Game generation error:", err);
     return NextResponse.json(
       { error: "Error al generar el juego. Intentá de nuevo." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

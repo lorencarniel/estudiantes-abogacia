@@ -17,8 +17,10 @@ interface GameData {
   id: string;
   gameType: string;
   title: string;
-  questions: Question[];
+  questions: unknown[];
   total: number;
+  description?: string;
+  explanation?: string;
 }
 
 interface GameRecord {
@@ -47,12 +49,295 @@ const MAX_TIME_BONUS = 50;
 
 type GameState = "setup" | "loading" | "playing" | "feedback" | "results";
 
+interface MatchPair { left: string; right: string; }
+interface OrderItem { text: string; correct_position: number; }
+interface FillSentence { text_with_blank: string; answer: string; hint: string; explanation: string; }
+
+function InteractiveGame({ game, onComplete, onExit }: { game: GameData; onComplete: (score: number) => void; onExit: () => void }) {
+  if (game.gameType === "matching") return <MatchingGameUI pairs={game.questions as MatchPair[]} title={game.title} onComplete={onComplete} onExit={onExit} />;
+  if (game.gameType === "ordering") return <OrderingGameUI items={game.questions as OrderItem[]} title={game.title} description={game.description || ""} explanation={game.explanation || ""} onComplete={onComplete} onExit={onExit} />;
+  return <FillBlankGameUI sentences={game.questions as FillSentence[]} title={game.title} onComplete={onComplete} onExit={onExit} />;
+}
+
+function MatchingGameUI({ pairs, title, onComplete, onExit }: { pairs: MatchPair[]; title: string; onComplete: (score: number) => void; onExit: () => void }) {
+  const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
+  const [matched, setMatched] = useState<Set<number>>(new Set());
+  const [wrong, setWrong] = useState<number | null>(null);
+  const [errors, setErrors] = useState(0);
+  const [shuffledRight, setShuffledRight] = useState<number[]>([]);
+
+  useEffect(() => {
+    const indices = pairs.map((_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    setShuffledRight(indices);
+  }, [pairs]);
+
+  function handleRightClick(rightIdx: number) {
+    if (selectedLeft === null || matched.has(rightIdx)) return;
+    if (selectedLeft === rightIdx) {
+      setMatched((prev) => new Set(prev).add(rightIdx));
+      setSelectedLeft(null);
+      const newMatched = matched.size + 1;
+      if (newMatched === pairs.length) {
+        const score = Math.max(0, pairs.length * 100 - errors * 25);
+        setTimeout(() => onComplete(score), 500);
+      }
+    } else {
+      setWrong(rightIdx);
+      setErrors((e) => e + 1);
+      setTimeout(() => { setWrong(null); setSelectedLeft(null); }, 800);
+    }
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-900">🔗 {title}</h2>
+        <button onClick={onExit} className="text-gray-400 hover:text-gray-600 text-sm">Salir</button>
+      </div>
+      <p className="text-gray-600 text-sm mb-4">Clickeá un concepto de la izquierda y luego su par de la derecha. {matched.size}/{pairs.length} pares encontrados.</p>
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Conceptos</p>
+          {pairs.map((p, i) => (
+            <button
+              key={`l-${i}`}
+              onClick={() => !matched.has(i) && setSelectedLeft(i)}
+              disabled={matched.has(i)}
+              className={`w-full text-left p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                matched.has(i)
+                  ? "border-green-300 bg-green-50 text-green-700 opacity-60"
+                  : selectedLeft === i
+                  ? "border-primary-500 bg-primary-50 text-primary-700 ring-2 ring-primary-200"
+                  : "border-gray-200 hover:border-primary-300 text-gray-800"
+              }`}
+            >
+              {p.left}
+            </button>
+          ))}
+        </div>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Definiciones</p>
+          {shuffledRight.map((origIdx) => (
+            <button
+              key={`r-${origIdx}`}
+              onClick={() => handleRightClick(origIdx)}
+              disabled={matched.has(origIdx)}
+              className={`w-full text-left p-3 rounded-lg border-2 text-sm transition-all ${
+                matched.has(origIdx)
+                  ? "border-green-300 bg-green-50 text-green-700 opacity-60"
+                  : wrong === origIdx
+                  ? "border-red-500 bg-red-50 text-red-700"
+                  : "border-gray-200 hover:border-indigo-300 text-gray-800"
+              }`}
+            >
+              {pairs[origIdx].right}
+            </button>
+          ))}
+        </div>
+      </div>
+      {errors > 0 && <p className="text-sm text-red-500 mt-4">Errores: {errors}</p>}
+    </div>
+  );
+}
+
+function OrderingGameUI({ items, title, description, explanation, onComplete, onExit }: { items: OrderItem[]; title: string; description: string; explanation: string; onComplete: (score: number) => void; onExit: () => void }) {
+  const [order, setOrder] = useState<number[]>([]);
+  const [submitted, setSubmitted] = useState(false);
+  const [correctCount, setCorrectCount] = useState(0);
+
+  useEffect(() => {
+    const indices = items.map((_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    setOrder(indices);
+  }, [items]);
+
+  function moveItem(from: number, to: number) {
+    if (submitted || to < 0 || to >= order.length) return;
+    const next = [...order];
+    [next[from], next[to]] = [next[to], next[from]];
+    setOrder(next);
+  }
+
+  function handleSubmit() {
+    let correct = 0;
+    order.forEach((itemIdx, pos) => {
+      if (items[itemIdx].correct_position === pos) correct++;
+    });
+    setCorrectCount(correct);
+    setSubmitted(true);
+    const score = Math.round((correct / items.length) * 600);
+    setTimeout(() => onComplete(score), 3000);
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-900">📶 {title}</h2>
+        <button onClick={onExit} className="text-gray-400 hover:text-gray-600 text-sm">Salir</button>
+      </div>
+      <p className="text-gray-600 text-sm mb-6">{description}</p>
+      <div className="space-y-2">
+        {order.map((itemIdx, pos) => {
+          const isCorrect = submitted && items[itemIdx].correct_position === pos;
+          const isWrong = submitted && items[itemIdx].correct_position !== pos;
+          return (
+            <div
+              key={itemIdx}
+              className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                isCorrect ? "border-green-400 bg-green-50" : isWrong ? "border-red-400 bg-red-50" : "border-gray-200 bg-white"
+              }`}
+            >
+              <span className="text-sm font-bold text-gray-400 w-6">{pos + 1}.</span>
+              <p className="flex-1 text-sm font-medium text-gray-800">{items[itemIdx].text}</p>
+              {!submitted && (
+                <div className="flex flex-col gap-0.5">
+                  <button onClick={() => moveItem(pos, pos - 1)} disabled={pos === 0} className="text-gray-400 hover:text-gray-700 disabled:opacity-30 text-xs px-1">▲</button>
+                  <button onClick={() => moveItem(pos, pos + 1)} disabled={pos === order.length - 1} className="text-gray-400 hover:text-gray-700 disabled:opacity-30 text-xs px-1">▼</button>
+                </div>
+              )}
+              {submitted && (
+                <span className="text-xs font-medium">{isCorrect ? "✅" : `❌ (pos. ${items[itemIdx].correct_position + 1})`}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {!submitted ? (
+        <button onClick={handleSubmit} className="btn-primary mt-6">Verificar orden</button>
+      ) : (
+        <div className="mt-6 p-4 rounded-xl border-2 border-primary-200 bg-primary-50">
+          <p className="font-bold text-primary-800 mb-1">{correctCount}/{items.length} en posición correcta</p>
+          <p className="text-sm text-gray-700">{explanation}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FillBlankGameUI({ sentences, title, onComplete, onExit }: { sentences: FillSentence[]; title: string; onComplete: (score: number) => void; onExit: () => void }) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [input, setInput] = useState("");
+  const [showResult, setShowResult] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [score, setScore] = useState(0);
+  const [showHint, setShowHint] = useState(false);
+  const [results, setResults] = useState<{ correct: boolean; userAnswer: string }[]>([]);
+
+  const current = sentences[currentIdx];
+
+  function normalize(s: string): string {
+    return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  }
+
+  function checkAnswer() {
+    const correct = normalize(input) === normalize(current.answer);
+    setIsCorrect(correct);
+    setShowResult(true);
+    const points = correct ? (showHint ? 50 : 100) : 0;
+    setScore((s) => s + points);
+    setResults((r) => [...r, { correct, userAnswer: input }]);
+  }
+
+  function nextQuestion() {
+    if (currentIdx + 1 >= sentences.length) {
+      onComplete(score);
+      return;
+    }
+    setCurrentIdx((i) => i + 1);
+    setInput("");
+    setShowResult(false);
+    setIsCorrect(false);
+    setShowHint(false);
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-gray-900">✏️ {title}</h2>
+          <span className="text-sm text-gray-500">{currentIdx + 1}/{sentences.length}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-primary-600 font-bold">{score} pts</span>
+          <button onClick={onExit} className="text-gray-400 hover:text-gray-600 text-sm">Salir</button>
+        </div>
+      </div>
+
+      <div className="w-full bg-gray-100 rounded-full h-1.5 mb-6">
+        <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${((currentIdx + (showResult ? 1 : 0)) / sentences.length) * 100}%` }} />
+      </div>
+
+      <div className="card mb-6">
+        <p className="text-lg leading-relaxed text-gray-900">
+          {current.text_with_blank.split("___").map((part, i, arr) => (
+            <span key={i}>
+              {part}
+              {i < arr.length - 1 && (
+                showResult ? (
+                  <span className={`font-bold px-1 ${isCorrect ? "text-green-600 underline" : "text-red-600 line-through"}`}>
+                    {isCorrect ? current.answer : input || "___"}
+                  </span>
+                ) : (
+                  <span className="inline-block border-b-2 border-primary-400 min-w-[80px] mx-1" />
+                )
+              )}
+            </span>
+          ))}
+        </p>
+      </div>
+
+      {!showResult ? (
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              className="input-field flex-1"
+              placeholder="Escribí tu respuesta..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && input.trim() && checkAnswer()}
+              autoFocus
+            />
+            <button onClick={checkAnswer} disabled={!input.trim()} className="btn-primary px-6">
+              Verificar
+            </button>
+          </div>
+          {!showHint ? (
+            <button onClick={() => setShowHint(true)} className="text-sm text-primary-600 hover:text-primary-800">
+              💡 Ver pista (-50 pts)
+            </button>
+          ) : (
+            <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded-lg">💡 Pista: {current.hint}</p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className={`p-4 rounded-xl border-2 ${isCorrect ? "border-green-300 bg-green-50" : "border-red-300 bg-red-50"}`}>
+            <p className="font-bold text-sm mb-1">{isCorrect ? "✅ ¡Correcto!" : `❌ La respuesta era: ${current.answer}`}</p>
+            <p className="text-sm text-gray-700">{current.explanation}</p>
+          </div>
+          <button onClick={nextQuestion} className="btn-primary">
+            {currentIdx + 1 >= sentences.length ? "Ver resultados" : "Siguiente"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function GamesPage() {
   const { status } = useSession();
   const router = useRouter();
 
   const [gameState, setGameState] = useState<GameState>("setup");
-  const [gameType, setGameType] = useState<"trivia" | "true_false">("trivia");
+  const [gameType, setGameType] = useState<"trivia" | "true_false" | "matching" | "ordering" | "fill_blank">("trivia");
   const [examType, setExamType] = useState<"parcial" | "final" | "libre">("parcial");
   const [error, setError] = useState("");
   const [game, setGame] = useState<GameData | null>(null);
@@ -95,7 +380,7 @@ export default function GamesPage() {
     };
   }, []);
 
-  const totalTime = gameType === "trivia" ? TRIVIA_TIME : TRUE_FALSE_TIME;
+  const totalTime = gameType === "trivia" ? TRIVIA_TIME : gameType === "true_false" ? TRUE_FALSE_TIME : TRIVIA_TIME;
 
   function startTimer() {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -121,7 +406,7 @@ export default function GamesPage() {
     if (timerRef.current) clearInterval(timerRef.current);
     if (!game) return;
 
-    const question = game.questions[currentQ];
+    const question = game.questions[currentQ] as Question;
     const correct = selected === question.correct_index;
     const remaining = timeLeft / 10;
     const timeBonus = correct
@@ -206,8 +491,10 @@ export default function GamesPage() {
         setSelectedAnswer(null);
         setShowFeedback(false);
         setGameState("playing");
-        setTimeLeft(totalTime * 10);
-        setTimeout(() => startTimer(), 300);
+        if (gameType === "trivia" || gameType === "true_false") {
+          setTimeLeft(totalTime * 10);
+          setTimeout(() => startTimer(), 300);
+        }
       }
     } catch {
       setError("Error de conexión");
@@ -263,8 +550,12 @@ export default function GamesPage() {
     );
   }
 
+  if (gameState === "playing" && game && (game.gameType === "matching" || game.gameType === "ordering" || game.gameType === "fill_blank")) {
+    return <InteractiveGame game={game} onComplete={(finalScore) => { setScore(finalScore); completeGame(game.id, [], finalScore, 0); setGameState("results"); }} onExit={resetGame} />;
+  }
+
   if (gameState === "playing" && game) {
-    const question = game.questions[currentQ];
+    const question = game.questions[currentQ] as Question;
     const isTrivia = game.gameType === "trivia";
 
     return (
@@ -394,9 +685,10 @@ export default function GamesPage() {
   }
 
   if (gameState === "results" && game) {
+    const isInteractive = ["matching", "ordering", "fill_blank"].includes(game.gameType);
     const totalQuestions = game.questions.length;
     const correctCount = answers.filter((a) => a.correct).length;
-    const pct = Math.round((correctCount / totalQuestions) * 100);
+    const pct = isInteractive ? Math.min(100, Math.round((score / (totalQuestions * 100)) * 100)) : Math.round((correctCount / totalQuestions) * 100);
     const avgTime =
       answers.length > 0
         ? (answers.reduce((acc, a) => acc + (totalTime - a.timeLeft), 0) / answers.length).toFixed(1)
@@ -411,24 +703,33 @@ export default function GamesPage() {
           </h2>
           <p className="text-gray-500 mb-4">{game.title}</p>
 
-          <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mb-6">
-            <div className="bg-white rounded-xl p-3 shadow-sm">
-              <p className="text-2xl font-bold text-green-600">
-                {correctCount}/{totalQuestions}
-              </p>
-              <p className="text-xs text-gray-500">Correctas</p>
+          {isInteractive ? (
+            <div className="max-w-xs mx-auto mb-6">
+              <div className="bg-white rounded-xl p-4 shadow-sm">
+                <p className="text-2xl font-bold text-primary-600">{pct}%</p>
+                <p className="text-xs text-gray-500">Rendimiento</p>
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-3 shadow-sm">
-              <p className="text-2xl font-bold text-orange-600">
-                🔥 {maxStreak}
-              </p>
-              <p className="text-xs text-gray-500">Racha máx.</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mb-6">
+              <div className="bg-white rounded-xl p-3 shadow-sm">
+                <p className="text-2xl font-bold text-green-600">
+                  {correctCount}/{totalQuestions}
+                </p>
+                <p className="text-xs text-gray-500">Correctas</p>
+              </div>
+              <div className="bg-white rounded-xl p-3 shadow-sm">
+                <p className="text-2xl font-bold text-orange-600">
+                  🔥 {maxStreak}
+                </p>
+                <p className="text-xs text-gray-500">Racha máx.</p>
+              </div>
+              <div className="bg-white rounded-xl p-3 shadow-sm">
+                <p className="text-2xl font-bold text-blue-600">{avgTime}s</p>
+                <p className="text-xs text-gray-500">Tiempo prom.</p>
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-3 shadow-sm">
-              <p className="text-2xl font-bold text-blue-600">{avgTime}s</p>
-              <p className="text-xs text-gray-500">Tiempo prom.</p>
-            </div>
-          </div>
+          )}
 
           <div className="flex justify-center gap-3">
             <button onClick={resetGame} className="btn-primary py-2 px-6">
@@ -443,53 +744,58 @@ export default function GamesPage() {
           </div>
         </div>
 
-        <h3 className="text-lg font-bold text-gray-900 mb-4">
-          Revisión de respuestas
-        </h3>
-        <div className="space-y-3">
-          {game.questions.map((q, idx) => {
-            const answer = answers[idx];
-            const correct = answer?.correct;
-            const timedOut = answer?.selected === -1;
-            return (
-              <div
-                key={idx}
-                className={`card border-l-4 ${
-                  correct
-                    ? "border-l-green-500"
-                    : "border-l-red-500"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="text-lg mt-0.5">
-                    {correct ? "✅" : timedOut ? "⏰" : "❌"}
-                  </span>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900 mb-1">
-                      {q.statement}
-                    </p>
-                    {!correct && (
-                      <p className="text-sm text-green-700 mb-1">
-                        Correcta: {q.options[q.correct_index]}
-                      </p>
-                    )}
-                    {answer && !timedOut && !correct && (
-                      <p className="text-sm text-red-600 mb-1">
-                        Tu respuesta: {q.options[answer.selected]}
-                      </p>
-                    )}
-                    <p className="text-sm text-gray-500">{q.explanation}</p>
+        {!isInteractive && (
+          <>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Revisión de respuestas
+            </h3>
+            <div className="space-y-3">
+              {game.questions.map((q: unknown, idx: number) => {
+                const question = q as Question;
+                const answer = answers[idx];
+                const correct = answer?.correct;
+                const timedOut = answer?.selected === -1;
+                return (
+                  <div
+                    key={idx}
+                    className={`card border-l-4 ${
+                      correct
+                        ? "border-l-green-500"
+                        : "border-l-red-500"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-lg mt-0.5">
+                        {correct ? "✅" : timedOut ? "⏰" : "❌"}
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 mb-1">
+                          {question.statement}
+                        </p>
+                        {!correct && (
+                          <p className="text-sm text-green-700 mb-1">
+                            Correcta: {question.options[question.correct_index]}
+                          </p>
+                        )}
+                        {answer && !timedOut && !correct && (
+                          <p className="text-sm text-red-600 mb-1">
+                            Tu respuesta: {question.options[answer.selected]}
+                          </p>
+                        )}
+                        <p className="text-sm text-gray-500">{question.explanation}</p>
+                      </div>
+                      {answer && (
+                        <span className="text-xs font-bold text-gray-400 shrink-0">
+                          +{answer.points}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {answer && (
-                    <span className="text-xs font-bold text-gray-400 shrink-0">
-                      +{answer.points}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -508,8 +814,7 @@ export default function GamesPage() {
         <h1 className="text-3xl font-bold text-gray-900">Juegos interactivos</h1>
       </div>
       <p className="text-gray-600 mb-6">
-        Poné a prueba tus conocimientos de forma divertida con trivia y
-        verdadero/falso.
+        Poné a prueba tus conocimientos con distintos modos de juego interactivos.
       </p>
 
       <div className="card mb-8">
@@ -517,43 +822,29 @@ export default function GamesPage() {
           Elegí el modo de juego
         </h2>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <button
-            type="button"
-            onClick={() => setGameType("trivia")}
-            className={`p-5 rounded-xl border-2 text-center transition-all ${
-              gameType === "trivia"
-                ? "border-primary-500 bg-primary-50 ring-2 ring-primary-200"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-          >
-            <span className="text-4xl block mb-2">🎯</span>
-            <p className="font-bold text-gray-900">Trivia</p>
-            <p className="text-xs text-gray-500 mt-1">
-              10 preguntas de opción múltiple
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              {TRIVIA_TIME}s por pregunta
-            </p>
-          </button>
-          <button
-            type="button"
-            onClick={() => setGameType("true_false")}
-            className={`p-5 rounded-xl border-2 text-center transition-all ${
-              gameType === "true_false"
-                ? "border-primary-500 bg-primary-50 ring-2 ring-primary-200"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-          >
-            <span className="text-4xl block mb-2">✅❌</span>
-            <p className="font-bold text-gray-900">Verdadero o Falso</p>
-            <p className="text-xs text-gray-500 mt-1">
-              12 afirmaciones para evaluar
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              {TRUE_FALSE_TIME}s por afirmación
-            </p>
-          </button>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+          {([
+            { key: "trivia" as const, icon: "🎯", name: "Trivia", desc: "10 preguntas multiple choice" },
+            { key: "true_false" as const, icon: "✅", name: "V o F", desc: "12 afirmaciones para evaluar" },
+            { key: "matching" as const, icon: "🔗", name: "Relacionar", desc: "8 pares concepto-definición" },
+            { key: "ordering" as const, icon: "📶", name: "Ordenar", desc: "6 items en secuencia correcta" },
+            { key: "fill_blank" as const, icon: "✏️", name: "Completar", desc: "8 oraciones con espacios" },
+          ]).map((g) => (
+            <button
+              key={g.key}
+              type="button"
+              onClick={() => setGameType(g.key)}
+              className={`p-4 rounded-xl border-2 text-center transition-all ${
+                gameType === g.key
+                  ? "border-primary-500 bg-primary-50 ring-2 ring-primary-200"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <span className="text-3xl block mb-1">{g.icon}</span>
+              <p className="font-bold text-gray-900 text-sm">{g.name}</p>
+              <p className="text-xs text-gray-500 mt-1">{g.desc}</p>
+            </button>
+          ))}
         </div>
 
         <div className="mb-6">
