@@ -1205,3 +1205,81 @@ export const evaluateCaseSchema: Record<string, unknown> = {
     feedback: { type: "string" as const },
   },
 };
+
+// ── Mnemotécnicos ──
+
+export function mnemonicPrompt(text: string): string {
+  return (
+    `${BASE_RULES} ` +
+    "Generá reglas mnemotécnicas para memorizar los conceptos más difíciles del apunte. " +
+    "Para cada concepto, generá al menos un recurso mnemotécnico usando estas técnicas:\n" +
+    "- Acrónimos (primera letra de cada elemento)\n" +
+    "- Frases memorables o rimas\n" +
+    "- Asociaciones visuales\n" +
+    "- Historias cortas que conecten los conceptos\n" +
+    "Generá entre 5 y 8 mnemotécnicos, priorizando los conceptos más complejos o con más elementos para recordar.\n" +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>`
+  );
+}
+
+export const mnemonicSchema: Record<string, unknown> = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "mnemonics"],
+  properties: {
+    title: { type: "string" as const },
+    mnemonics: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["concept", "technique", "mnemonic", "explanation"],
+        properties: {
+          concept: { type: "string" as const },
+          technique: { type: "string" as const },
+          mnemonic: { type: "string" as const },
+          explanation: { type: "string" as const },
+        },
+      },
+    },
+  },
+};
+
+// ── Glosario automático ──
+
+export function glossaryPrompt(text: string): string {
+  return (
+    `${BASE_RULES} ` +
+    "Extraé los términos jurídicos clave del apunte con sus definiciones precisas. " +
+    "Incluí entre 10 y 20 términos, priorizando:\n" +
+    "- Conceptos jurídicos técnicos\n" +
+    "- Institutos legales\n" +
+    "- Principios del derecho\n" +
+    "- Figuras procesales\n" +
+    "Cada definición debe ser clara, concisa y basada exclusivamente en el material.\n" +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>`
+  );
+}
+
+export const glossarySchema: Record<string, unknown> = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["terms"],
+  properties: {
+    terms: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["term", "definition", "category"],
+        properties: {
+          term: { type: "string" as const },
+          definition: { type: "string" as const },
+          category: { type: "string" as const },
+        },
+      },
+    },
+  },
+};

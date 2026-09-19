@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import MaterialInput from "@/components/MaterialInput";
+import ExportPDF from "@/components/ExportPDF";
 import { useAutoLoadMaterial } from "@/hooks/useAutoLoadMaterial";
 
 interface SummaryResult {
@@ -25,6 +26,7 @@ export default function SummariesPage() {
   const [expandCount, setExpandCount] = useState(0);
   const { text: autoText, loading: autoLoading, subjectName } = useAutoLoadMaterial();
   const autoTriggered = useRef(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
@@ -156,7 +158,11 @@ export default function SummariesPage() {
 
       {result && (
         <div className="card">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">{result.title}</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">{result.title}</h2>
+            <ExportPDF contentRef={contentRef} fileName={result.title} />
+          </div>
+          <div ref={contentRef}>
 
           <div className="prose prose-gray max-w-none mb-8">
             {result.summary.split("\n").map((paragraph, i) => (
@@ -183,6 +189,7 @@ export default function SummariesPage() {
             </div>
           )}
 
+          </div>
           <div className="border-t border-gray-100 pt-6 mt-6">
             {expanding ? (
               <div className="text-center py-4">

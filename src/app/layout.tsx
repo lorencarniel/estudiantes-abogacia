@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Providers from "@/components/Providers";
+import ThemeProvider from "@/components/ThemeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,9 +16,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body>
         <Providers>
+        <ThemeProvider>
           <a href="#main-content" className="skip-nav">
             Saltar al contenido
           </a>
@@ -25,6 +27,7 @@ export default function RootLayout({
           <main id="main-content" className="min-h-[calc(100vh-4rem)]">
             {children}
           </main>
+        </ThemeProvider>
         </Providers>
       </body>
     </html>

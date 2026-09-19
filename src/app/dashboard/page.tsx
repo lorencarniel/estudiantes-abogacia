@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import PomodoroTimer from "@/components/PomodoroTimer";
+import XPBar from "@/components/XPBar";
 
 const tools = [
   {
@@ -111,6 +113,20 @@ const tools = [
     href: "/tools/oral-exam",
     available: true,
   },
+  {
+    icon: "🧠",
+    title: "Mnemotécnicos",
+    description: "Generá reglas mnemotécnicas para memorizar conceptos difíciles.",
+    href: "/tools/mnemonics",
+    available: true,
+  },
+  {
+    icon: "📚",
+    title: "Glosario",
+    description: "Extraé un glosario de términos jurídicos de tus apuntes.",
+    href: "/tools/glossary",
+    available: true,
+  },
 ];
 
 const TYPE_ICONS: Record<string, string> = {
@@ -126,6 +142,8 @@ const TYPE_ICONS: Record<string, string> = {
   comparison: "⚖️",
   practical_case: "📋",
   oral_exam: "🎤",
+  mnemonic: "🧠",
+  glossary: "📚",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -141,6 +159,8 @@ const TYPE_LABELS: Record<string, string> = {
   comparison: "Comparación",
   practical_case: "Caso práctico",
   oral_exam: "Examen oral",
+  mnemonic: "Mnemotécnico",
+  glossary: "Glosario",
 };
 
 interface RecentItem {
@@ -174,6 +194,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [recent, setRecent] = useState<RecentItem[]>([]);
   const [stats, setStats] = useState<QuickStats | null>(null);
+  const [showPomodoro, setShowPomodoro] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
@@ -209,12 +230,27 @@ export default function DashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Hola, {session.user.name?.split(" ")[0] || "estudiante"}
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           Elegí una herramienta para empezar a estudiar
         </p>
+      </div>
+
+      <XPBar />
+
+      {showPomodoro && (
+        <div className="mb-6 max-w-sm mx-auto">
+          <PomodoroTimer onClose={() => setShowPomodoro(false)} />
+        </div>
+      )}
+
+      <div className="flex justify-end mb-4">
+        <button onClick={() => setShowPomodoro(!showPomodoro)}
+          className="flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 transition-colors">
+          <span>🍅</span> {showPomodoro ? "Ocultar Pomodoro" : "Modo Pomodoro"}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -226,10 +262,10 @@ export default function DashboardPage() {
             }`}
           >
             <div className="text-3xl mb-3">{tool.icon}</div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
               {tool.title}
             </h3>
-            <p className="text-gray-600 text-sm mb-4">{tool.description}</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{tool.description}</p>
             {tool.available ? (
               <Link href={tool.href} className="btn-primary inline-block text-sm py-2 px-4">
                 Usar herramienta
@@ -246,7 +282,7 @@ export default function DashboardPage() {
       {recent.length > 0 && (
         <div className="mt-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Actividad reciente</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Actividad reciente</h2>
             <Link href="/history" className="text-primary-600 hover:text-primary-800 text-sm font-medium">
               Ver todo el historial &rarr;
             </Link>
@@ -260,7 +296,7 @@ export default function DashboardPage() {
               >
                 <span className="text-2xl">{TYPE_ICONS[item.type] || "📄"}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{item.title}</p>
+                  <p className="font-medium text-gray-900 dark:text-white truncate">{item.title}</p>
                   <p className="text-xs text-gray-400">
                     {TYPE_LABELS[item.type] || item.type} &middot; {timeAgo(item.createdAt)}
                   </p>
@@ -274,7 +310,7 @@ export default function DashboardPage() {
       {stats && stats.totalItems > 0 && (
         <div className="mt-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Tu progreso</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Tu progreso</h2>
             <Link href="/stats" className="text-primary-600 hover:text-primary-800 text-sm font-medium">
               Ver estadísticas &rarr;
             </Link>

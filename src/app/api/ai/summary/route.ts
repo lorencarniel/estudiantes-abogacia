@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { summaryPrompt, summarySchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
+import { addXP } from "@/lib/xp";
 
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
       },
     });
 
+    addXP(session.user.id, "summary").catch(() => {});
     return NextResponse.json({ id: saved.id, ...content });
   } catch (err) {
     console.error("Summary generation error:", err);

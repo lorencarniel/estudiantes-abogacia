@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { quizPrompt, quizSchema, ExamType } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
+import { addXP } from "@/lib/xp";
 
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
@@ -139,5 +140,7 @@ export async function PUT(request: Request) {
     data: { answers: JSON.stringify(answers), score, passed, completedAt: new Date() },
   });
 
+  addXP(session.user.id, "quiz_complete").catch(() => {});
+  if (passed) addXP(session.user.id, "quiz_pass").catch(() => {});
   return NextResponse.json({ score, total: 10, passed, results });
 }

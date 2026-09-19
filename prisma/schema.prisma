@@ -29,6 +29,7 @@ model User {
   videoExplanations  VideoExplanation[]
   syllabi            Syllabus[]
   materials          Material[]
+  xp                 UserXP?
 
   @@map("users")
 }
@@ -252,4 +253,18 @@ model Material {
 
   @@index([userId])
   @@map("materials")
+}
+
+model UserXP {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  totalXP          Int      @default(0)
+  level            Int      @default(1)
+  lastActivityDate DateTime @default(now())
+  streak           Int      @default(0)
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_xp")
 }
