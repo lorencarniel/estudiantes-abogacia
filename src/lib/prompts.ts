@@ -691,6 +691,327 @@ export const fillBlankGameSchema = {
   },
 };
 
+// ── Ahorcado ──
+
+export function hangmanGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examInstruction}` +
+    "Creá un juego de AHORCADO JURÍDICO basado exclusivamente en el apunte. " +
+    "Elegí 8 términos jurídicos clave del material. Cada término debe ser una sola palabra o a lo sumo dos palabras. " +
+    "Para cada término incluí una pista/definición que ayude a adivinarlo sin revelarlo. " +
+    "Los términos deben ser variados: conceptos, institutos, figuras legales, principios. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const hangmanGameSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "words"],
+  properties: {
+    title: { type: "string" as const },
+    words: {
+      type: "array" as const,
+      minItems: 8,
+      maxItems: 8,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["word", "hint"],
+        properties: {
+          word: { type: "string" as const },
+          hint: { type: "string" as const },
+        },
+      },
+    },
+  },
+};
+
+// ── Crucigrama ──
+
+export function crosswordGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examInstruction}` +
+    "Creá un CRUCIGRAMA JURÍDICO basado exclusivamente en el apunte. " +
+    "Generá exactamente 10 palabras con sus pistas (definiciones). " +
+    "Cada palabra debe ser un término jurídico de una sola palabra, en MAYÚSCULAS, sin tildes ni espacios. " +
+    "Las pistas deben ser definiciones claras y concisas. " +
+    "Indicá para cada palabra: la dirección ('horizontal' o 'vertical'), fila y columna de inicio (en una grilla de 15x15, 0-indexed), y el número de pista. " +
+    "Asegurate de que las palabras se crucen entre sí compartiendo letras. Al menos 5 cruces. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const crosswordGameSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "words"],
+  properties: {
+    title: { type: "string" as const },
+    words: {
+      type: "array" as const,
+      minItems: 10,
+      maxItems: 10,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["word", "clue", "direction", "row", "col", "number"],
+        properties: {
+          word: { type: "string" as const },
+          clue: { type: "string" as const },
+          direction: { type: "string" as const, enum: ["horizontal", "vertical"] },
+          row: { type: "integer" as const, minimum: 0, maximum: 14 },
+          col: { type: "integer" as const, minimum: 0, maximum: 14 },
+          number: { type: "integer" as const, minimum: 1, maximum: 10 },
+        },
+      },
+    },
+  },
+};
+
+// ── Memotest ──
+
+export function memoryGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examInstruction}` +
+    "Creá un juego de MEMOTEST (memoria) basado exclusivamente en el apunte. " +
+    "Generá exactamente 8 pares. Cada par tiene un concepto/término (card_a, máximo 3 palabras) y su definición/descripción breve (card_b, máximo 8 palabras). " +
+    "Los pares deben cubrir los conceptos más importantes del material. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const memoryGameSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "pairs"],
+  properties: {
+    title: { type: "string" as const },
+    pairs: {
+      type: "array" as const,
+      minItems: 8,
+      maxItems: 8,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["card_a", "card_b"],
+        properties: {
+          card_a: { type: "string" as const },
+          card_b: { type: "string" as const },
+        },
+      },
+    },
+  },
+};
+
+// ── Categorización ──
+
+export function categorizeGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examInstruction}` +
+    "Creá un juego de CATEGORIZACIÓN basado exclusivamente en el apunte. " +
+    "Identificá 2 o 3 categorías jurídicas que se puedan distinguir en el material (ej: 'Derechos reales' vs 'Derechos personales', o 'Delitos dolosos' vs 'Delitos culposos'). " +
+    "Generá entre 10 y 15 items, cada uno con un texto breve (máximo 5 palabras) y la categoría correcta a la que pertenece. " +
+    "Las categorías deben estar claramente diferenciadas y los items no deben ser ambiguos. " +
+    "Incluí una explicación general del criterio de clasificación. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const categorizeGameSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "categories", "items", "explanation"],
+  properties: {
+    title: { type: "string" as const },
+    categories: {
+      type: "array" as const,
+      minItems: 2,
+      maxItems: 3,
+      items: { type: "string" as const },
+    },
+    items: {
+      type: "array" as const,
+      minItems: 10,
+      maxItems: 15,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["text", "category"],
+        properties: {
+          text: { type: "string" as const },
+          category: { type: "string" as const },
+        },
+      },
+    },
+    explanation: { type: "string" as const },
+  },
+};
+
+// ── Completa el artículo ──
+
+export function articleFillGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examInstruction}` +
+    "Creá un juego de COMPLETAR ARTÍCULOS basado exclusivamente en el apunte. " +
+    "Buscá 5 artículos, normas o reglas mencionados en el material. Para cada uno: " +
+    "muestra el texto del artículo con 2-3 palabras clave reemplazadas por '___'. " +
+    "Para cada espacio en blanco, incluí la respuesta correcta y 3 opciones incorrectas (distractores plausibles). " +
+    "Si el apunte no cita artículos textuales, usá definiciones o reglas jurídicas del material como si fueran artículos. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const articleFillGameSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "articles"],
+  properties: {
+    title: { type: "string" as const },
+    articles: {
+      type: "array" as const,
+      minItems: 5,
+      maxItems: 5,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["reference", "text_with_blanks", "blanks"],
+        properties: {
+          reference: { type: "string" as const },
+          text_with_blanks: { type: "string" as const },
+          blanks: {
+            type: "array" as const,
+            minItems: 2,
+            maxItems: 3,
+            items: {
+              type: "object" as const,
+              additionalProperties: false,
+              required: ["answer", "options"],
+              properties: {
+                answer: { type: "string" as const },
+                options: {
+                  type: "array" as const,
+                  minItems: 4,
+                  maxItems: 4,
+                  items: { type: "string" as const },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+// ── Quién quiere ser abogado ──
+
+export function millionaireGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examInstruction}` +
+    "Creá un juego estilo QUIÉN QUIERE SER MILLONARIO (versión abogado) basado exclusivamente en el apunte. " +
+    "Generá exactamente 10 preguntas de dificultad CRECIENTE: las primeras 3 fáciles, las siguientes 4 medias, las últimas 3 difíciles. " +
+    "Cada pregunta tiene 4 opciones (A, B, C, D), un índice de respuesta correcta (0-3), y una explicación. " +
+    "También incluí para cada pregunta una 'pista' que podría ayudar sin dar la respuesta directa. " +
+    "Las preguntas deben ser claras y sin ambigüedad. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const millionaireGameSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "questions"],
+  properties: {
+    title: { type: "string" as const },
+    questions: {
+      type: "array" as const,
+      minItems: 10,
+      maxItems: 10,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["question", "options", "correct_index", "explanation", "hint", "difficulty"],
+        properties: {
+          question: { type: "string" as const },
+          options: {
+            type: "array" as const,
+            minItems: 4,
+            maxItems: 4,
+            items: { type: "string" as const },
+          },
+          correct_index: { type: "integer" as const, minimum: 0, maximum: 3 },
+          explanation: { type: "string" as const },
+          hint: { type: "string" as const },
+          difficulty: { type: "string" as const, enum: ["facil", "media", "dificil"] },
+        },
+      },
+    },
+  },
+};
+
+// ── Línea de tiempo ──
+
+export function timelineGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examInstruction}` +
+    "Creá un juego de LÍNEA DE TIEMPO basado exclusivamente en el apunte. " +
+    "Identificá entre 6 y 8 eventos, leyes, reformas, hitos o fechas mencionados o derivados del material. " +
+    "Cada evento tiene: un título breve (máximo 6 palabras), una descripción corta, un año o período, y su posición correcta en orden cronológico (0 = más antiguo). " +
+    "Si el material no tiene fechas explícitas, usá el orden lógico/histórico de los institutos o normas. " +
+    "Incluí una explicación general de la línea de tiempo. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const timelineGameSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "description", "events", "explanation"],
+  properties: {
+    title: { type: "string" as const },
+    description: { type: "string" as const },
+    events: {
+      type: "array" as const,
+      minItems: 6,
+      maxItems: 8,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["label", "detail", "year", "correct_position"],
+        properties: {
+          label: { type: "string" as const },
+          detail: { type: "string" as const },
+          year: { type: "string" as const },
+          correct_position: { type: "integer" as const, minimum: 0, maximum: 7 },
+        },
+      },
+    },
+    explanation: { type: "string" as const },
+  },
+};
+
 // ── Comparador de conceptos ──
 
 export function compareConceptsPrompt(text: string, syllabus?: string): string {
