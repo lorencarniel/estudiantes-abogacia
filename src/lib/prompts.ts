@@ -164,22 +164,24 @@ export function quizPrompt(
 export function conceptMapPrompt(text: string, syllabus?: string): string {
   return (
     `${BASE_RULES} ` +
-    "Generá un mapa conceptual JERÁRQUICO basado exclusivamente en el apunte. " +
+    "Generá un mapa conceptual JERÁRQUICO INICIAL basado exclusivamente en el apunte. " +
+    "Este mapa será expandible: el usuario podrá profundizar cada nodo después.\n" +
     "Reglas de estructura:\n" +
     "- El primer nodo (n1) debe ser el concepto PRINCIPAL/central del tema, con categoría 'principal'.\n" +
-    "- Usá entre 8 y 12 nodos (no más de 12).\n" +
-    "- Organizá en niveles: principal (1 nodo) → secundarios (2-4 nodos) → definiciones/ejemplos/normas.\n" +
-    "- Las conexiones deben fluir de arriba hacia abajo (del concepto general al específico). Evitá conexiones cruzadas entre nodos del mismo nivel.\n" +
-    "- Cada nodo tiene id único (n1, n2...), label corto (máximo 5 palabras) y categoría (principal, secundario, definicion, ejemplo, norma).\n" +
+    "- Generá entre 3 y 5 nodos solamente (los conceptos más importantes de alto nivel).\n" +
+    "- Organizá en máximo 2 niveles: principal (1 nodo) → secundarios (2-4 nodos).\n" +
+    "- Las conexiones deben fluir de arriba hacia abajo.\n" +
+    "- Cada nodo tiene id único (n1, n2...), label corto (máximo 5 palabras), categoría y 'expandable' (true si el concepto tiene sub-temas que se podrían profundizar).\n" +
     "- Si el material menciona artículos o leyes, usá la categoría 'norma'.\n" +
     "- Cada edge tiene source, target y label descriptivo (máximo 4 palabras).\n" +
+    "- Marcá expandable: true en los nodos que representan temas amplios con sub-conceptos en el material.\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
   );
 }
 
-export const conceptMapSchema = {
+export const conceptMapSchema: Record<string, unknown> = {
   type: "object" as const,
   additionalProperties: false,
   required: ["title", "nodes", "edges"],
@@ -190,7 +192,7 @@ export const conceptMapSchema = {
       items: {
         type: "object" as const,
         additionalProperties: false,
-        required: ["id", "label", "category"],
+        required: ["id", "label", "category", "expandable"],
         properties: {
           id: { type: "string" as const },
           label: { type: "string" as const },
@@ -198,6 +200,66 @@ export const conceptMapSchema = {
             type: "string" as const,
             enum: ["principal", "secundario", "definicion", "ejemplo", "norma"],
           },
+          expandable: { type: "boolean" as const },
+        },
+      },
+    },
+    edges: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["source", "target", "label"],
+        properties: {
+          source: { type: "string" as const },
+          target: { type: "string" as const },
+          label: { type: "string" as const },
+        },
+      },
+    },
+  },
+};
+
+export function expandNodePrompt(
+  text: string,
+  parentLabel: string,
+  parentCategory: string,
+  existingLabels: string[],
+): string {
+  return (
+    `${BASE_RULES} ` +
+    `Estás expandiendo el nodo "${parentLabel}" (categoría: ${parentCategory}) de un mapa conceptual.\n` +
+    "Generá entre 2 y 4 sub-nodos hijos que profundicen este concepto, basándote exclusivamente en el apunte.\n" +
+    "Reglas:\n" +
+    "- Cada sub-nodo tiene id único, label corto (máx 5 palabras), categoría y expandable (true si se puede profundizar más).\n" +
+    "- Los IDs deben empezar con el prefijo que se indica en el esquema.\n" +
+    "- Cada edge conecta el nodo padre con el sub-nodo hijo, con label descriptivo (máx 4 palabras).\n" +
+    `- NO repitas conceptos ya existentes en el mapa: ${existingLabels.join(", ")}.\n` +
+    "- Buscá en el apunte información específica sobre este concepto: definiciones, ejemplos, normas, clasificaciones.\n" +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>`
+  );
+}
+
+export const expandNodeSchema: Record<string, unknown> = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["nodes", "edges"],
+  properties: {
+    nodes: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["id", "label", "category", "expandable"],
+        properties: {
+          id: { type: "string" as const },
+          label: { type: "string" as const },
+          category: {
+            type: "string" as const,
+            enum: ["principal", "secundario", "definicion", "ejemplo", "norma"],
+          },
+          expandable: { type: "boolean" as const },
         },
       },
     },

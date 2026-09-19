@@ -29,6 +29,7 @@ export default function ConceptMapsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [mapData, setMapData] = useState<ConceptMapData | null>(null);
+  const [sourceText, setSourceText] = useState("");
   const [error, setError] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +57,7 @@ export default function ConceptMapsPage() {
         return;
       }
 
+      setSourceText(text);
       setMapData(data);
     } catch {
       setError("Error de conexión. Intentá de nuevo.");
@@ -75,7 +77,7 @@ export default function ConceptMapsPage() {
         <h1 className="text-3xl font-bold text-gray-900">Mapas conceptuales</h1>
       </div>
       <p className="text-gray-600 mb-6">
-        Pegá tu apunte y la IA genera un mapa conceptual interactivo que podés editar, reorganizar y exportar.
+        Pegá tu apunte y la IA genera un mapa conceptual interactivo. Expandí cada nodo con el botón + para profundizar en los conceptos.
       </p>
 
       {!mapData && (
@@ -105,7 +107,7 @@ export default function ConceptMapsPage() {
               Generar otro mapa
             </button>
           </div>
-          <ConceptMapEditor initialData={mapData} />
+          <ConceptMapEditor initialData={mapData} sourceText={sourceText} />
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -23,6 +23,7 @@ interface MapNodeData {
   id: string;
   label: string;
   category: "principal" | "secundario" | "definicion" | "ejemplo" | "norma";
+  expandable?: boolean;
 }
 
 interface MapEdgeData {
@@ -54,13 +55,13 @@ function getNodeWidth(label: string): number {
   return Math.max(BASE_NODE_WIDTH, Math.min(textWidth, 280));
 }
 
-function layoutNodes(rawNodes: MapNodeData[], rawEdges: MapEdgeData[]): Node[] {
+function computeLayout(rawNodes: MapNodeData[], rawEdges: MapEdgeData[]): Map<string, { x: number; y: number }> {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: "TB", nodesep: 120, ranksep: 160, marginx: 50, marginy: 50 });
 
   for (const n of rawNodes) {
-    g.setNode(n.id, { width: getNodeWidth(n.label), height: NODE_HEIGHT });
+    g.setNode(n.id, { width: getNodeWidth(n.label), height: NODE_HEIGHT + 16 });
   }
   for (const e of rawEdges) {
     g.setEdge(e.source, e.target);
@@ -68,22 +69,45 @@ function layoutNodes(rawNodes: MapNodeData[], rawEdges: MapEdgeData[]): Node[] {
 
   dagre.layout(g);
 
-  return rawNodes.map((n) => {
+  const positions = new Map<string, { x: number; y: number }>();
+  for (const n of rawNodes) {
     const pos = g.node(n.id);
     const w = getNodeWidth(n.label);
+    positions.set(n.id, { x: pos.x - w / 2, y: pos.y - NODE_HEIGHT / 2 });
+  }
+  return positions;
+}
+
+function buildFlowNodes(
+  rawNodes: MapNodeData[],
+  positions: Map<string, { x: number; y: number }>,
+  expandedIds: Set<string>,
+  expandingId: string | null,
+  onExpandRef: React.RefObject<((nodeId: string) => void) | null>,
+): Node[] {
+  return rawNodes.map((n) => {
+    const pos = positions.get(n.id) || { x: 0, y: 0 };
     const colors = CATEGORY_COLORS[n.category] || CATEGORY_COLORS.secundario;
     return {
       id: n.id,
       type: "concept",
-      position: { x: pos.x - w / 2, y: pos.y - NODE_HEIGHT / 2 },
-      data: { label: n.label, category: n.category, colors },
+      position: pos,
+      data: {
+        label: n.label,
+        category: n.category,
+        colors,
+        expandable: n.expandable || false,
+        expanded: expandedIds.has(n.id),
+        isExpanding: expandingId === n.id,
+        onExpand: (id: string) => onExpandRef.current?.(id),
+      },
     };
   });
 }
 
 function buildEdges(rawEdges: MapEdgeData[]): Edge[] {
   return rawEdges.map((e, i) => ({
-    id: `e-${i}`,
+    id: `e-${e.source}-${e.target}-${i}`,
     source: e.source,
     target: e.target,
     label: e.label,
@@ -102,13 +126,99 @@ const nodeTypes = { concept: ConceptNode };
 
 interface Props {
   initialData: ConceptMapData;
+  sourceText?: string;
 }
 
-export default function ConceptMapEditor({ initialData }: Props) {
+export default function ConceptMapEditor({ initialData, sourceText }: Props) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes(initialData.nodes, initialData.edges));
-  const [edges, setEdges, onEdgesChange] = useEdgesState(buildEdges(initialData.edges));
   const [showLegend, setShowLegend] = useState(true);
+
+  const rawNodesRef = useRef<MapNodeData[]>(initialData.nodes);
+  const rawEdgesRef = useRef<MapEdgeData[]>(initialData.edges);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [expandingId, setExpandingId] = useState<string | null>(null);
+
+  const onExpandRef = useRef<((nodeId: string) => void) | null>(null);
+
+  const initialPositions = useMemo(
+    () => computeLayout(rawNodesRef.current, rawEdgesRef.current),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const initialFlowNodes = useMemo(
+    () => buildFlowNodes(rawNodesRef.current, initialPositions, new Set(), null, onExpandRef),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialFlowNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(buildEdges(initialData.edges));
+
+  const handleExpandNode = useCallback(async (nodeId: string) => {
+    if (!sourceText) return;
+
+    setExpandingId(nodeId);
+
+    const parentNode = rawNodesRef.current.find((n) => n.id === nodeId);
+    if (!parentNode) { setExpandingId(null); return; }
+
+    const existingLabels = rawNodesRef.current.map((n) => n.label);
+
+    try {
+      const res = await fetch("/api/ai/concept-map/expand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: sourceText,
+          parentId: nodeId,
+          parentLabel: parentNode.label,
+          parentCategory: parentNode.category,
+          existingLabels,
+        }),
+      });
+
+      if (!res.ok) { setExpandingId(null); return; }
+
+      const data = await res.json();
+
+      rawNodesRef.current = [
+        ...rawNodesRef.current.map((n) =>
+          n.id === nodeId ? { ...n, expandable: false } : n
+        ),
+        ...data.nodes,
+      ];
+      rawEdgesRef.current = [...rawEdgesRef.current, ...data.edges];
+
+      const newExpandedIds = new Set(expandedIds);
+      newExpandedIds.add(nodeId);
+      setExpandedIds(newExpandedIds);
+
+      const newPositions = computeLayout(rawNodesRef.current, rawEdgesRef.current);
+      const newFlowNodes = buildFlowNodes(rawNodesRef.current, newPositions, newExpandedIds, null, onExpandRef);
+      setNodes(newFlowNodes);
+      setEdges(buildEdges(rawEdgesRef.current));
+    } catch {
+      // silently fail
+    } finally {
+      setExpandingId(null);
+    }
+  }, [sourceText, expandedIds, setNodes, setEdges]);
+
+  onExpandRef.current = handleExpandNode;
+
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        data: {
+          ...n.data,
+          isExpanding: expandingId === n.id,
+          expanded: expandedIds.has(n.id),
+        },
+      }))
+    );
+  }, [expandingId, expandedIds, setNodes]);
 
   const onConnect = useCallback(
     (params: Connection) =>
@@ -159,6 +269,10 @@ export default function ConceptMapEditor({ initialData }: Props) {
         label: "Nuevo concepto",
         category: "secundario",
         colors: CATEGORY_COLORS.secundario,
+        expandable: false,
+        expanded: false,
+        isExpanding: false,
+        onExpand: (nid: string) => onExpandRef.current?.(nid),
       },
     };
     setNodes((nds) => [...nds, newNode]);
@@ -178,6 +292,8 @@ export default function ConceptMapEditor({ initialData }: Props) {
     ],
     []
   );
+
+  const hasExpandableNodes = rawNodesRef.current.some((n) => n.expandable);
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white" ref={reactFlowWrapper}>
@@ -252,6 +368,9 @@ export default function ConceptMapEditor({ initialData }: Props) {
       </div>
       <div className="bg-gray-50 border-t border-gray-200 px-4 py-3">
         <p className="text-xs text-gray-500">
+          {hasExpandableNodes && sourceText ? (
+            <>Clickeá el <strong>+</strong> en un nodo para profundizar ese concepto con IA. </>
+          ) : null}
           Arrastrá los nodos para reorganizar. Conectá nodos arrastrando desde un punto de conexión a otro.
           Seleccioná y presioná <kbd className="px-1 py-0.5 bg-gray-200 rounded text-[10px]">Delete</kbd> para eliminar.
         </p>
