@@ -675,3 +675,197 @@ export const fillBlankGameSchema = {
     },
   },
 };
+
+// ── Comparador de conceptos ──
+
+export function compareConceptsPrompt(text: string, syllabus?: string): string {
+  return (
+    `${BASE_RULES} ` +
+    "Identificá en el apunte pares de conceptos jurídicos que se prestan a confusión o que es útil comparar. " +
+    "Generá entre 2 y 4 comparaciones. Para cada una incluí:\n" +
+    "- Los dos conceptos (nombre corto)\n" +
+    "- Definición breve de cada uno (1-2 oraciones)\n" +
+    "- 2-3 diferencias clave\n" +
+    "- 1-2 semejanzas\n" +
+    "- Artículos del código o ley aplicables (si el apunte los menciona)\n" +
+    "- Un ejemplo práctico breve que ayude a distinguirlos\n" +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const compareConceptsSchema: Record<string, unknown> = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "comparisons"],
+  properties: {
+    title: { type: "string" as const },
+    comparisons: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["concept_a", "concept_b", "definition_a", "definition_b", "differences", "similarities", "articles", "example"],
+        properties: {
+          concept_a: { type: "string" as const },
+          concept_b: { type: "string" as const },
+          definition_a: { type: "string" as const },
+          definition_b: { type: "string" as const },
+          differences: { type: "array" as const, items: { type: "string" as const } },
+          similarities: { type: "array" as const, items: { type: "string" as const } },
+          articles: { type: "string" as const },
+          example: { type: "string" as const },
+        },
+      },
+    },
+  },
+};
+
+// ── Simulacro de examen oral ──
+
+export function oralExamPrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examBlock = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examBlock}` +
+    "Generá 5 preguntas de examen oral universitario basadas exclusivamente en el apunte. " +
+    "Las preguntas deben ser como las que haría un profesor en una mesa de examen de Abogacía:\n" +
+    "- Progresivas en dificultad (de conceptual a analítica)\n" +
+    "- Que requieran desarrollo, no respuestas de sí/no\n" +
+    "- Que cubran distintos temas del material\n" +
+    "- Cada pregunta incluye los puntos clave que debería mencionar una respuesta ideal\n" +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const oralExamSchema: Record<string, unknown> = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "questions"],
+  properties: {
+    title: { type: "string" as const },
+    questions: {
+      type: "array" as const,
+      minItems: 5,
+      maxItems: 5,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["question", "key_points", "difficulty"],
+        properties: {
+          question: { type: "string" as const },
+          key_points: { type: "array" as const, items: { type: "string" as const } },
+          difficulty: { type: "string" as const, enum: ["basica", "intermedia", "avanzada"] },
+        },
+      },
+    },
+  },
+};
+
+export function evaluateAnswerPrompt(
+  question: string,
+  keyPoints: string[],
+  studentAnswer: string,
+  sourceText: string,
+): string {
+  return (
+    `${BASE_RULES} ` +
+    "Sos un profesor de Abogacía evaluando una respuesta de examen oral.\n" +
+    `Pregunta: "${question}"\n` +
+    `Puntos clave esperados: ${keyPoints.join("; ")}\n` +
+    `Respuesta del alumno: "${studentAnswer}"\n\n` +
+    "Evaluá la respuesta del alumno. Debés:\n" +
+    "- Dar un puntaje de 1 a 10\n" +
+    "- Listar qué puntos cubrió bien\n" +
+    "- Listar qué puntos faltaron o fueron incorrectos\n" +
+    "- Dar una respuesta modelo (lo que debería haber dicho un alumno con nota 10)\n" +
+    "- Un consejo breve para mejorar\n" +
+    "Basate exclusivamente en el apunte para evaluar.\n" +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${sourceText}\n</apunte>`
+  );
+}
+
+export const evaluateAnswerSchema: Record<string, unknown> = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["score", "correct_points", "missing_points", "model_answer", "tip"],
+  properties: {
+    score: { type: "number" as const },
+    correct_points: { type: "array" as const, items: { type: "string" as const } },
+    missing_points: { type: "array" as const, items: { type: "string" as const } },
+    model_answer: { type: "string" as const },
+    tip: { type: "string" as const },
+  },
+};
+
+// ── Casos prácticos ──
+
+export function practicalCasePrompt(text: string, examType?: ExamType, syllabus?: string): string {
+  const examBlock = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
+  return (
+    `${BASE_RULES} ${examBlock}` +
+    "Generá un caso práctico jurídico basado exclusivamente en el apunte. " +
+    "El caso debe:\n" +
+    "- Tener un relato de hechos concreto con nombres ficticios y situaciones realistas\n" +
+    "- Involucrar al menos 2-3 conceptos jurídicos del material\n" +
+    "- Incluir 3-4 preguntas guía para que el alumno analice el caso\n" +
+    "- Tener una resolución modelo con fundamento en la normativa del apunte\n" +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
+export const practicalCaseSchema: Record<string, unknown> = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "facts", "questions", "resolution"],
+  properties: {
+    title: { type: "string" as const },
+    facts: { type: "string" as const },
+    questions: { type: "array" as const, items: { type: "string" as const } },
+    resolution: { type: "string" as const },
+  },
+};
+
+export function evaluateCasePrompt(
+  caseFacts: string,
+  caseQuestions: string[],
+  studentAnalysis: string,
+  resolution: string,
+  sourceText: string,
+): string {
+  return (
+    `${BASE_RULES} ` +
+    "Sos un profesor de Abogacía corrigiendo el análisis de un caso práctico.\n" +
+    `Hechos del caso: "${caseFacts}"\n` +
+    `Preguntas planteadas: ${caseQuestions.join("; ")}\n` +
+    `Resolución modelo: "${resolution}"\n` +
+    `Análisis del alumno: "${studentAnalysis}"\n\n` +
+    "Evaluá el análisis. Debés:\n" +
+    "- Dar un puntaje de 1 a 10\n" +
+    "- Listar aciertos del alumno\n" +
+    "- Listar errores o conceptos mal aplicados\n" +
+    "- Listar conceptos que omitió\n" +
+    "- Dar un comentario general con sugerencias\n" +
+    "Basate exclusivamente en el apunte.\n" +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${sourceText}\n</apunte>`
+  );
+}
+
+export const evaluateCaseSchema: Record<string, unknown> = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["score", "correct_points", "errors", "omissions", "feedback"],
+  properties: {
+    score: { type: "number" as const },
+    correct_points: { type: "array" as const, items: { type: "string" as const } },
+    errors: { type: "array" as const, items: { type: "string" as const } },
+    omissions: { type: "array" as const, items: { type: "string" as const } },
+    feedback: { type: "string" as const },
+  },
+};

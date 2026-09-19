@@ -83,6 +83,34 @@ const tools = [
     href: "/tools/materials",
     available: true,
   },
+  {
+    icon: "⚖️",
+    title: "Comparador",
+    description: "Compará conceptos similares que se prestan a confusión.",
+    href: "/tools/compare",
+    available: true,
+  },
+  {
+    icon: "💬",
+    title: "Chat con el apunte",
+    description: "Hacé preguntas libres sobre tu material y recibí respuestas.",
+    href: "/tools/chat",
+    available: true,
+  },
+  {
+    icon: "📋",
+    title: "Casos prácticos",
+    description: "Resolvé casos jurídicos generados por IA con corrección.",
+    href: "/tools/practical-cases",
+    available: true,
+  },
+  {
+    icon: "🎤",
+    title: "Simulacro oral",
+    description: "Practicá para el examen oral con preguntas y evaluación.",
+    href: "/tools/oral-exam",
+    available: true,
+  },
 ];
 
 const TYPE_ICONS: Record<string, string> = {
@@ -95,6 +123,9 @@ const TYPE_ICONS: Record<string, string> = {
   audio: "🎧",
   game: "🎮",
   video: "🎬",
+  comparison: "⚖️",
+  practical_case: "📋",
+  oral_exam: "🎤",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -107,6 +138,9 @@ const TYPE_LABELS: Record<string, string> = {
   audio: "Audio",
   game: "Juego",
   video: "Video",
+  comparison: "Comparación",
+  practical_case: "Caso práctico",
+  oral_exam: "Examen oral",
 };
 
 interface RecentItem {
