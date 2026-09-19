@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import MaterialInput from "@/components/MaterialInput";
+import { useAutoLoadMaterial } from "@/hooks/useAutoLoadMaterial";
 
 interface OutlineSection {
   heading: string;
@@ -24,10 +25,19 @@ export default function OutlinesPage() {
   const [result, setResult] = useState<OutlineResult | null>(null);
   const [error, setError] = useState("");
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
+  const { text: autoText, loading: autoLoading, subjectName } = useAutoLoadMaterial();
+  const autoTriggered = useRef(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
   }, [status, router]);
+
+  useEffect(() => {
+    if (autoText && !autoTriggered.current && !loading && !result) {
+      autoTriggered.current = true;
+      handleGenerate(autoText);
+    }
+  }, [autoText]);
 
   async function handleGenerate(text: string, syllabusId?: string) {
     setLoading(true);
@@ -85,6 +95,16 @@ export default function OutlinesPage() {
         </p>
       </div>
 
+      {(autoLoading || (autoText && loading && !result)) && (
+        <div className="card text-center py-12 mb-8">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">
+            Cargando apunte de {subjectName}...
+          </p>
+        </div>
+      )}
+
+      {!autoLoading && !(autoText && loading && !result) && !result && (
       <div className="card mb-8">
         <MaterialInput
           onSubmit={handleGenerate}
@@ -92,6 +112,7 @@ export default function OutlinesPage() {
           buttonLabel="Generar esquema"
         />
       </div>
+      )}
 
       {error && (
         <div className="card border-red-200 bg-red-50 mb-8">

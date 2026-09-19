@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MaterialInput from "@/components/MaterialInput";
+import { useAutoLoadMaterial } from "@/hooks/useAutoLoadMaterial";
 
 interface Flashcard {
   id: string;
@@ -45,10 +46,19 @@ export default function FlashcardsPage() {
   const [reviewing, setReviewing] = useState(false);
   const [studyComplete, setStudyComplete] = useState(false);
   const [studyStats, setStudyStats] = useState({ total: 0, good: 0 });
+  const { text: autoText, loading: autoLoading, subjectName } = useAutoLoadMaterial();
+  const autoTriggered = useRef(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
   }, [status, router]);
+
+  useEffect(() => {
+    if (autoText && !autoTriggered.current && !loading) {
+      autoTriggered.current = true;
+      handleGenerate(autoText);
+    }
+  }, [autoText]);
 
   const fetchDecks = useCallback(async () => {
     try {
@@ -261,6 +271,16 @@ export default function FlashcardsPage() {
         Generá tarjetas de memoria a partir de tu material y estudialas con repetición espaciada.
       </p>
 
+      {(autoLoading || (autoText && loading)) && (
+        <div className="card text-center py-12 mb-8">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">
+            Cargando apunte de {subjectName}...
+          </p>
+        </div>
+      )}
+
+      {!autoLoading && !(autoText && loading) && (
       <div className="card mb-8">
         <h2 className="text-lg font-bold text-gray-900 mb-4">
           Generar nuevo mazo
@@ -276,6 +296,7 @@ export default function FlashcardsPage() {
           </div>
         )}
       </div>
+      )}
 
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Mis mazos</h2>

@@ -43,6 +43,21 @@ const ACTIVITY_ICONS: Record<string, string> = {
   repasar: "🔄",
 };
 
+const ACTIVITY_TOOLS: Record<string, { href: string; label: string }> = {
+  leer: { href: "/tools/summaries", label: "Generar resumen" },
+  resumir: { href: "/tools/outlines", label: "Hacer esquema" },
+  practicar: { href: "/tools/quizzes", label: "Hacer quiz" },
+  repasar: { href: "/tools/flashcards", label: "Usar flashcards" },
+};
+
+function getActivityTool(activity: string): { href: string; label: string } | null {
+  const lower = activity.toLowerCase();
+  for (const [key, tool] of Object.entries(ACTIVITY_TOOLS)) {
+    if (lower.includes(key)) return tool;
+  }
+  return null;
+}
+
 function getActivityIcon(activity: string): string {
   const lower = activity.toLowerCase();
   for (const [key, icon] of Object.entries(ACTIVITY_ICONS)) {
@@ -270,21 +285,32 @@ export default function SchedulesPage() {
                 </div>
 
                 <div className="space-y-2 ml-9">
-                  {day.blocks.map((block, bi) => (
-                    <div
-                      key={bi}
-                      className="flex items-center gap-3 text-sm bg-white rounded-lg p-2 border border-gray-100"
-                    >
-                      <span className="text-lg">{getActivityIcon(block.activity)}</span>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-800">{block.subject}</p>
-                        <p className="text-gray-500 text-xs">{block.activity}</p>
+                  {day.blocks.map((block, bi) => {
+                    const tool = getActivityTool(block.activity);
+                    return (
+                      <div
+                        key={bi}
+                        className="flex items-center gap-3 text-sm bg-white rounded-lg p-2 border border-gray-100"
+                      >
+                        <span className="text-lg">{getActivityIcon(block.activity)}</span>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-800">{block.subject}</p>
+                          <p className="text-gray-500 text-xs">{block.activity}</p>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          {block.minutes} min
+                        </span>
+                        {tool && (
+                          <Link
+                            href={`${tool.href}?subject=${encodeURIComponent(block.subject)}`}
+                            className="text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                          >
+                            Estudiar
+                          </Link>
+                        )}
                       </div>
-                      <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                        {block.minutes} min
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );

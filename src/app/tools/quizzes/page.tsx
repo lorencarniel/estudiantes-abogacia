@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import MaterialInput from "@/components/MaterialInput";
+import { useAutoLoadMaterial } from "@/hooks/useAutoLoadMaterial";
 
 type Difficulty = "facil" | "media" | "dificil";
 
@@ -61,10 +62,19 @@ export default function QuizzesPage() {
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [results, setResults] = useState<GradeData | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const { text: autoText, loading: autoLoading, subjectName } = useAutoLoadMaterial();
+  const autoTriggered = useRef(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
   }, [status, router]);
+
+  useEffect(() => {
+    if (autoText && !autoTriggered.current && !loading && !quiz) {
+      autoTriggered.current = true;
+      handleGenerate(autoText);
+    }
+  }, [autoText]);
 
   useEffect(() => {
     if (!quiz || results) return;
@@ -167,7 +177,16 @@ export default function QuizzesPage() {
         </p>
       </div>
 
-      {!quiz && (
+      {(autoLoading || (autoText && loading && !quiz)) && (
+        <div className="card text-center py-12 mb-8">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">
+            Cargando apunte de {subjectName}...
+          </p>
+        </div>
+      )}
+
+      {!quiz && !autoLoading && !(autoText && loading && !quiz) && (
         <div className="card mb-8">
           <MaterialInput
             onSubmit={handleGenerate}
