@@ -20,6 +20,9 @@ export default function SummariesPage() {
   const [result, setResult] = useState<SummaryResult | null>(null);
   const [error, setError] = useState("");
   const [level, setLevel] = useState<"corto" | "mediano" | "detallado">("mediano");
+  const [sourceText, setSourceText] = useState("");
+  const [expanding, setExpanding] = useState(false);
+  const [expandCount, setExpandCount] = useState(0);
   const { text: autoText, loading: autoLoading, subjectName } = useAutoLoadMaterial();
   const autoTriggered = useRef(false);
 
@@ -38,6 +41,8 @@ export default function SummariesPage() {
     setLoading(true);
     setError("");
     setResult(null);
+    setSourceText(text);
+    setExpandCount(0);
 
     try {
       const res = await fetch("/api/ai/summary", {
@@ -52,6 +57,33 @@ export default function SummariesPage() {
       setError(err instanceof Error ? err.message : "Error al generar");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleExpand() {
+    if (!result || !sourceText) return;
+    setExpanding(true);
+    setError("");
+
+    try {
+      const conceptsText = result.key_concepts.map(c => `${c.term}: ${c.definition}`).join("\n");
+      const res = await fetch("/api/ai/summary/expand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: sourceText,
+          currentSummary: result.summary,
+          currentConcepts: conceptsText,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setResult(data);
+      setExpandCount(expandCount + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al expandir");
+    } finally {
+      setExpanding(false);
     }
   }
 
@@ -150,6 +182,40 @@ export default function SummariesPage() {
               </div>
             </div>
           )}
+
+          <div className="border-t border-gray-100 pt-6 mt-6">
+            {expanding ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">Expandiendo resumen...</p>
+              </div>
+            ) : (
+              <div className="bg-primary-50 rounded-lg p-4 text-center">
+                <p className="text-primary-800 font-medium mb-3">
+                  ¿Querés agregar más detalles al resumen?
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={handleExpand}
+                    className="btn-primary text-sm py-2 px-6"
+                  >
+                    Sí, expandir
+                  </button>
+                  <button
+                    onClick={() => setResult({ ...result, title: result.title })}
+                    className="text-sm text-gray-500 hover:text-gray-700 font-medium py-2 px-4"
+                  >
+                    No, está bien así
+                  </button>
+                </div>
+                {expandCount > 0 && (
+                  <p className="text-xs text-primary-500 mt-2">
+                    Expandido {expandCount} {expandCount === 1 ? "vez" : "veces"}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

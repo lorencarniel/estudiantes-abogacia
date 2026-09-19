@@ -71,6 +71,21 @@ export const summarySchema = {
   },
 };
 
+export function expandSummaryPrompt(text: string, currentSummary: string, currentConcepts: string): string {
+  return (
+    `${BASE_RULES} ` +
+    "Tenés un resumen que ya fue generado a partir del apunte. El estudiante quiere MÁS detalles. " +
+    "Tu tarea es EXPANDIR el resumen existente agregando más profundidad, más ejemplos, más artículos, más desarrollo de cada punto. " +
+    "NO repitas lo que ya está: usá el resumen actual como base y AGREGÁ contenido nuevo. " +
+    "El resultado debe ser un resumen más largo y completo que integre lo anterior con lo nuevo. " +
+    "Agregá nuevos conceptos clave que no estén en la lista actual. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>\n` +
+    `<resumen_actual>\n${currentSummary}\n</resumen_actual>\n` +
+    `<conceptos_actuales>\n${currentConcepts}\n</conceptos_actuales>`
+  );
+}
+
 export function outlinePrompt(text: string, syllabus?: string): string {
   return (
     `${BASE_RULES} ` +
