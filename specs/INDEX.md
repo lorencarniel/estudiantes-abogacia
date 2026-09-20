@@ -9,3 +9,4 @@
 | 005 | Cronograma interactivo con botón Estudiar | COMPLETADA | 2026-09-19 |
 | 006 | 7 juegos nuevos (ahorcado, memotest, categorizar, artículos, millonario, línea de tiempo, crucigrama) | COMPLETADA | 2026-09-19 |
 | 007 | Features premium (dark mode, pomodoro, mnemotécnicos, glosario, exportar PDF, sistema XP) | COMPLETADA | 2026-09-19 |
+| 008 | Auditoría integral (seguridad API, dark mode completo, robustez) | COMPLETADA | 2026-09-20 |
