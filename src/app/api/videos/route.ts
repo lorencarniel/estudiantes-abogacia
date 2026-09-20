@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeJsonParse } from "@/lib/utils";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -9,6 +10,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const videos = await prisma.videoExplanation.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
@@ -25,9 +27,13 @@ export async function GET() {
   return NextResponse.json({
     videos: videos.map((v) => ({
       ...v,
-      slides: JSON.parse(v.slides),
+      slides: safeJsonParse(v.slides, []),
     })),
   });
+  } catch (error) {
+    console.error("Error al obtener videos:", error);
+    return NextResponse.json({ error: "Error al obtener videos" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: Request) {
@@ -36,6 +42,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
@@ -50,8 +57,9 @@ export async function DELETE(request: Request) {
     try {
       const path = await import("path");
       const { unlink } = await import("fs/promises");
+      const safeName = path.basename(video.fileName);
       await unlink(
-        path.join(process.cwd(), "storage", "audios", video.fileName)
+        path.join(process.cwd(), "storage", "audios", safeName)
       );
     } catch {
       /* file may not exist */
@@ -60,4 +68,8 @@ export async function DELETE(request: Request) {
   }
 
   return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Error al eliminar video:", error);
+    return NextResponse.json({ error: "Error al eliminar video" }, { status: 500 });
+  }
 }

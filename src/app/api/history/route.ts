@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeJsonParse } from "@/lib/utils";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -9,6 +10,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
 
@@ -124,7 +126,7 @@ export async function GET(request: Request) {
       type: c.type,
       title: c.title,
       createdAt: c.createdAt,
-      data: JSON.parse(c.content),
+      data: safeJsonParse(c.content, {}),
     })),
     ...quizzes.map((q) => ({
       id: q.id,
@@ -137,8 +139,8 @@ export async function GET(request: Request) {
         total: q.total,
         passed: q.passed,
         completed: !!q.completedAt,
-        questions: JSON.parse(q.questions),
-        answers: q.answers ? JSON.parse(q.answers) : null,
+        questions: safeJsonParse(q.questions, []),
+        answers: safeJsonParse(q.answers, null),
       },
     })),
     ...flashDecks.map((d) => ({
@@ -152,8 +154,8 @@ export async function GET(request: Request) {
       },
     })),
     ...studySchedules.map((s) => {
-      const days = JSON.parse(s.schedule);
-      const completed = JSON.parse(s.completedDays);
+      const days = safeJsonParse(s.schedule, []);
+      const completed = safeJsonParse(s.completedDays, []);
       return {
         id: s.id,
         type: "schedule" as const,
@@ -197,12 +199,16 @@ export async function GET(request: Request) {
       data: {
         duration: v.duration,
         voice: v.voice,
-        slideCount: JSON.parse(v.slides).length,
+        slideCount: safeJsonParse(v.slides, []).length,
       },
     })),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return NextResponse.json({ items });
+  } catch (error) {
+    console.error("Error al cargar el historial:", error);
+    return NextResponse.json({ error: "Error al cargar el historial" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: Request) {
@@ -211,6 +217,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   const type = searchParams.get("type");
@@ -243,7 +250,8 @@ export async function DELETE(request: Request) {
       try {
         const path = await import("path");
         const { unlink } = await import("fs/promises");
-        await unlink(path.join(process.cwd(), "storage", "audios", video.fileName));
+        const safeName = path.basename(video.fileName);
+        await unlink(path.join(process.cwd(), "storage", "audios", safeName));
       } catch { /* file may not exist */ }
       await prisma.videoExplanation.delete({ where: { id } });
     }
@@ -255,7 +263,8 @@ export async function DELETE(request: Request) {
       try {
         const path = await import("path");
         const { unlink } = await import("fs/promises");
-        await unlink(path.join(process.cwd(), "storage", "audios", audio.fileName));
+        const safeName2 = path.basename(audio.fileName);
+        await unlink(path.join(process.cwd(), "storage", "audios", safeName2));
       } catch { /* file may not exist */ }
       await prisma.audioExplanation.delete({ where: { id } });
     }
@@ -266,4 +275,8 @@ export async function DELETE(request: Request) {
   }
 
   return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Error al eliminar del historial:", error);
+    return NextResponse.json({ error: "Error al eliminar del historial" }, { status: 500 });
+  }
 }

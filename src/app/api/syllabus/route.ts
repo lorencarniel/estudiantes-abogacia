@@ -11,6 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const syllabi = await prisma.syllabus.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
@@ -18,6 +19,10 @@ export async function GET() {
   });
 
   return NextResponse.json({ syllabi });
+  } catch (error) {
+    console.error("Error al obtener programas:", error);
+    return NextResponse.json({ error: "Error al obtener programas" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -26,6 +31,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const body = await request.json();
   const { title, content, fileName } = body;
 
@@ -74,6 +80,10 @@ export async function POST(request: Request) {
     createdAt: syllabus.createdAt,
     truncated: content.length > MAX_SYLLABUS_LENGTH,
   });
+  } catch (error) {
+    console.error("Error al guardar programa:", error);
+    return NextResponse.json({ error: "Error al guardar programa" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: Request) {
@@ -82,6 +92,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 
@@ -99,4 +110,8 @@ export async function DELETE(request: Request) {
 
   await prisma.syllabus.delete({ where: { id } });
   return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Error al eliminar programa:", error);
+    return NextResponse.json({ error: "Error al eliminar programa" }, { status: 500 });
+  }
 }

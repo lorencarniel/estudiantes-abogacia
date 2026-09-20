@@ -35,7 +35,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Enviá al menos un mensaje" }, { status: 400 });
   }
 
-  const chatMessages = (messages as ChatMessage[]).slice(-10);
+  const validRoles = new Set(["user", "assistant"]);
+  const chatMessages = (messages as ChatMessage[])
+    .filter(m => typeof m.content === "string" && validRoles.has(m.role))
+    .slice(-10);
 
   try {
     const response = await openai.chat.completions.create({

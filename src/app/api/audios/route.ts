@@ -11,6 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const audios = await prisma.audioExplanation.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
@@ -25,6 +26,10 @@ export async function GET() {
   });
 
   return NextResponse.json({ audios });
+  } catch (error) {
+    console.error("Error al obtener audios:", error);
+    return NextResponse.json({ error: "Error al obtener audios" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: Request) {
@@ -33,6 +38,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
@@ -45,7 +51,8 @@ export async function DELETE(request: Request) {
 
   if (audio) {
     try {
-      const filePath = path.join(process.cwd(), "storage", "audios", audio.fileName);
+      const safeName = path.basename(audio.fileName);
+      const filePath = path.join(process.cwd(), "storage", "audios", safeName);
       await unlink(filePath);
     } catch { /* file may not exist */ }
 
@@ -53,4 +60,8 @@ export async function DELETE(request: Request) {
   }
 
   return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Error al eliminar audio:", error);
+    return NextResponse.json({ error: "Error al eliminar audio" }, { status: 500 });
+  }
 }

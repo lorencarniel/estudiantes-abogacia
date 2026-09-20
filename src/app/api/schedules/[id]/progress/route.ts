@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeJsonParse } from "@/lib/utils";
 
 const progressSchema = z.object({
   date: z.string(),
@@ -18,6 +19,7 @@ export async function POST(
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const body = await request.json();
   const parsed = progressSchema.safeParse(body);
   if (!parsed.success) {
@@ -32,7 +34,7 @@ export async function POST(
     return NextResponse.json({ error: "Cronograma no encontrado" }, { status: 404 });
   }
 
-  const completedDays: string[] = JSON.parse(schedule.completedDays);
+  const completedDays: string[] = safeJsonParse(schedule.completedDays, []);
 
   if (parsed.data.completed) {
     if (!completedDays.includes(parsed.data.date)) {
@@ -49,4 +51,8 @@ export async function POST(
   });
 
   return NextResponse.json({ completedDays });
+  } catch (error) {
+    console.error("Error al actualizar progreso del cronograma:", error);
+    return NextResponse.json({ error: "Error al actualizar progreso del cronograma" }, { status: 500 });
+  }
 }

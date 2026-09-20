@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeJsonParse } from "@/lib/utils";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -9,6 +10,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const userId = session.user.id;
 
   const [
@@ -88,7 +90,7 @@ export async function GET() {
   const bestStreak = games.reduce((max, g) => Math.max(max, g.streak), 0);
 
   const scheduleDaysCompleted = schedules.reduce((acc, s) => {
-    return acc + JSON.parse(s.completedDays).length;
+    return acc + safeJsonParse(s.completedDays, []).length;
   }, 0);
 
   const totalItems =
@@ -152,4 +154,8 @@ export async function GET() {
     content: contentCount,
     activityByDay,
   });
+  } catch (error) {
+    console.error("Error al obtener estadísticas:", error);
+    return NextResponse.json({ error: "Error al obtener estadísticas" }, { status: 500 });
+  }
 }

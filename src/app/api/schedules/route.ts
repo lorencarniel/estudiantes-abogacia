@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeJsonParse } from "@/lib/utils";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -9,6 +10,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const schedules = await prisma.studySchedule.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
@@ -20,12 +22,16 @@ export async function GET() {
       title: s.title,
       examDate: s.examDate,
       hoursPerDay: s.hoursPerDay,
-      subjects: JSON.parse(s.subjects),
-      schedule: JSON.parse(s.schedule),
-      completedDays: JSON.parse(s.completedDays),
+      subjects: safeJsonParse(s.subjects, []),
+      schedule: safeJsonParse(s.schedule, []),
+      completedDays: safeJsonParse(s.completedDays, []),
       createdAt: s.createdAt,
     })),
   });
+  } catch (error) {
+    console.error("Error al obtener cronogramas:", error);
+    return NextResponse.json({ error: "Error al obtener cronogramas" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: Request) {
@@ -34,6 +40,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
@@ -45,4 +52,8 @@ export async function DELETE(request: Request) {
   });
 
   return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Error al eliminar cronograma:", error);
+    return NextResponse.json({ error: "Error al eliminar cronograma" }, { status: 500 });
+  }
 }

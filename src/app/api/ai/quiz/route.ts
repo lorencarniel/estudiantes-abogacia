@@ -6,6 +6,7 @@ import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { quizPrompt, quizSchema, ExamType } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { addXP } from "@/lib/xp";
+import { safeJsonParse } from "@/lib/utils";
 
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
@@ -115,7 +116,7 @@ export async function PUT(request: Request) {
     );
   }
 
-  const questions = JSON.parse(quiz.questions) as Array<{
+  const questions = safeJsonParse(quiz.questions, []) as Array<{
     statement: string;
     options: string[];
     correct_index: number;

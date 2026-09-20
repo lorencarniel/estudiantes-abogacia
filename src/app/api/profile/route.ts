@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeJsonParse } from "@/lib/utils";
 
 const profileSchema = z.object({
   university: z.string().max(200).optional(),
@@ -16,6 +17,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const profile = await prisma.profile.findUnique({
     where: { userId: session.user.id },
   });
@@ -24,12 +26,16 @@ export async function GET() {
     return NextResponse.json({
       profile: {
         ...profile,
-        subjects: JSON.parse(profile.subjects),
+        subjects: safeJsonParse(profile.subjects, []),
       },
     });
   }
 
   return NextResponse.json({ profile: null });
+  } catch (error) {
+    console.error("Error al obtener perfil:", error);
+    return NextResponse.json({ error: "Error al obtener perfil" }, { status: 500 });
+  }
 }
 
 export async function PUT(request: Request) {
@@ -38,6 +44,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const body = await request.json();
   const parsed = profileSchema.safeParse(body);
 
@@ -63,7 +70,11 @@ export async function PUT(request: Request) {
   return NextResponse.json({
     profile: {
       ...profile,
-      subjects: JSON.parse(profile.subjects),
+      subjects: safeJsonParse(profile.subjects, []),
     },
   });
+  } catch (error) {
+    console.error("Error al actualizar perfil:", error);
+    return NextResponse.json({ error: "Error al actualizar perfil" }, { status: 500 });
+  }
 }

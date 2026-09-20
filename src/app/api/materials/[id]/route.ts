@@ -12,6 +12,7 @@ export async function GET(
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const material = await prisma.material.findFirst({
     where: { id: params.id, userId: session.user.id },
   });
@@ -27,4 +28,8 @@ export async function GET(
     fileName: material.fileName,
     charCount: material.charCount,
   });
+  } catch (error) {
+    console.error("Error al obtener apunte:", error);
+    return NextResponse.json({ error: "Error al obtener apunte" }, { status: 500 });
+  }
 }

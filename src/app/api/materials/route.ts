@@ -13,6 +13,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const materials = await prisma.material.findMany({
     where: { userId: session.user.id },
     select: { id: true, title: true, fileName: true, charCount: true, createdAt: true },
@@ -20,6 +21,10 @@ export async function GET() {
   });
 
   return NextResponse.json({ materials });
+  } catch (error) {
+    console.error("Error al obtener apuntes:", error);
+    return NextResponse.json({ error: "Error al obtener apuntes" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -28,6 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const body = await request.json();
   const { title, content, fileName } = body;
 
@@ -74,6 +80,10 @@ export async function POST(request: Request) {
     charCount: material.charCount,
     createdAt: material.createdAt,
   });
+  } catch (error) {
+    console.error("Error al guardar apunte:", error);
+    return NextResponse.json({ error: "Error al guardar apunte" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: Request) {
@@ -82,6 +92,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
@@ -97,4 +108,8 @@ export async function DELETE(request: Request) {
 
   await prisma.material.delete({ where: { id } });
   return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Error al eliminar apunte:", error);
+    return NextResponse.json({ error: "Error al eliminar apunte" }, { status: 500 });
+  }
 }

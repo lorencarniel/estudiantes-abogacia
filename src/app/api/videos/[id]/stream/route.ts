@@ -23,12 +23,8 @@ export async function GET(
   }
 
   try {
-    const filePath = path.join(
-      process.cwd(),
-      "storage",
-      "audios",
-      video.fileName
-    );
+    const safeName = path.basename(video.fileName);
+    const filePath = path.join(process.cwd(), "storage", "audios", safeName);
     const fileBuffer = await readFile(filePath);
 
     return new NextResponse(fileBuffer, {

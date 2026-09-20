@@ -10,6 +10,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const userXP = await prisma.userXP.findUnique({
     where: { userId: session.user.id },
   });
@@ -22,4 +23,8 @@ export async function GET() {
     ...getLevelInfo(userXP.totalXP),
     streak: userXP.streak,
   });
+  } catch (error) {
+    console.error("Error al obtener XP:", error);
+    return NextResponse.json({ error: "Error al obtener XP" }, { status: 500 });
+  }
 }

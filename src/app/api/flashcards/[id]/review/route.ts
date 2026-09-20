@@ -48,6 +48,7 @@ export async function POST(
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  try {
   const body = await request.json();
   const parsed = reviewSchema.safeParse(body);
   if (!parsed.success) {
@@ -80,4 +81,8 @@ export async function POST(
   });
 
   return NextResponse.json(updated);
+  } catch (error) {
+    console.error("Error al registrar revisión de flashcard:", error);
+    return NextResponse.json({ error: "Error al registrar revisión de flashcard" }, { status: 500 });
+  }
 }
