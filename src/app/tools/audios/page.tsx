@@ -184,18 +184,18 @@ export default function AudiosPage() {
 
       <div className="flex items-center gap-3 mb-2">
         <span className="text-3xl">🎧</span>
-        <h1 className="text-3xl font-bold text-gray-900">Audios explicativos</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Audios explicativos</h1>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
         La IA genera una explicación tipo clase y la convierte en audio para que
         puedas escucharla donde sea.
       </p>
 
       <div className="card mb-8">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Generar audio</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Generar audio</h2>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Voz del profesor
           </label>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -207,7 +207,7 @@ export default function AudiosPage() {
                 className={`text-center p-2 rounded-lg border-2 transition-all text-sm ${
                   voice === v.id
                     ? "border-primary-500 bg-primary-50 text-primary-700"
-                    : "border-gray-200 text-gray-600 hover:border-gray-300"
+                    : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
                 }`}
                 disabled={loading}
               >
@@ -234,8 +234,8 @@ export default function AudiosPage() {
         <div className="card mb-8 bg-gradient-to-r from-primary-50 to-indigo-50 border-primary-200 sticky top-20 z-40">
           <div className="flex items-center justify-between mb-3">
             <div className="flex-1 min-w-0 mr-4">
-              <p className="font-bold text-gray-900 truncate">{playing.title}</p>
-              <p className="text-xs text-gray-500">Voz: {playing.voice}</p>
+              <p className="font-bold text-gray-900 dark:text-white truncate">{playing.title}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Voz: {playing.voice}</p>
             </div>
             <button
               onClick={stopAudio}
@@ -278,7 +278,7 @@ export default function AudiosPage() {
                   }%, #e5e7eb ${(currentTime / (audioDuration || 1)) * 100}%)`,
                 }}
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(audioDuration)}</span>
               </div>
@@ -287,7 +287,7 @@ export default function AudiosPage() {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <span className="text-xs text-gray-500 mr-1">Velocidad:</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">Velocidad:</span>
               {SPEEDS.map((s) => (
                 <button
                   key={s}
@@ -295,7 +295,7 @@ export default function AudiosPage() {
                   className={`text-xs px-2 py-1 rounded-full font-medium transition-colors ${
                     speed === s
                       ? "bg-primary-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
                   {s}x
@@ -311,8 +311,8 @@ export default function AudiosPage() {
           </div>
 
           {showScript && (
-            <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200 max-h-60 overflow-y-auto">
-              <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
+            <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto">
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
                 {playing.script}
               </p>
             </div>
@@ -321,7 +321,7 @@ export default function AudiosPage() {
       )}
 
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Mis audios</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Mis audios</h2>
 
         {loadingAudios ? (
           <div className="flex justify-center py-8">
@@ -330,7 +330,7 @@ export default function AudiosPage() {
         ) : audios.length === 0 ? (
           <div className="card text-center py-12">
             <p className="text-4xl mb-3">📭</p>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               No tenés audios todavía. Generá uno arriba con tu material de estudio.
             </p>
           </div>
@@ -362,7 +362,7 @@ export default function AudiosPage() {
                   </button>
 
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 truncate">
+                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                       {audio.title}
                     </h3>
                     <p className="text-xs text-gray-400">

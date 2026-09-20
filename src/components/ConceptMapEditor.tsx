@@ -296,7 +296,7 @@ export default function ConceptMapEditor({ initialData, sourceText }: Props) {
   const hasExpandableNodes = rawNodesRef.current.some((n) => n.expandable);
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white" ref={reactFlowWrapper}>
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800" ref={reactFlowWrapper}>
       <div className="h-[600px] sm:h-[700px]">
         <ReactFlow
           nodes={nodes}
@@ -325,19 +325,19 @@ export default function ConceptMapEditor({ initialData, sourceText }: Props) {
             <div className="flex flex-col gap-2">
               <button
                 onClick={addNode}
-                className="bg-white border border-gray-300 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm hover:bg-gray-50"
+                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 + Agregar nodo
               </button>
               <button
                 onClick={handleExportPng}
-                className="bg-white border border-gray-300 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm hover:bg-gray-50"
+                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Exportar PNG
               </button>
               <button
                 onClick={() => setShowLegend((v) => !v)}
-                className="bg-white border border-gray-300 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm hover:bg-gray-50"
+                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 {showLegend ? "Ocultar" : "Mostrar"} leyenda
               </button>
@@ -345,8 +345,8 @@ export default function ConceptMapEditor({ initialData, sourceText }: Props) {
           </Panel>
           {showLegend && (
             <Panel position="top-left">
-              <div className="bg-white/95 border border-gray-200 rounded-lg p-3 shadow-sm">
-                <p className="text-xs font-semibold text-gray-600 mb-2">Categorías</p>
+              <div className="bg-white/95 dark:bg-gray-800/95 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-sm">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Categorías</p>
                 <div className="flex flex-col gap-1.5">
                   {legend.map((item) => {
                     const c = CATEGORY_COLORS[item.key];
@@ -356,7 +356,7 @@ export default function ConceptMapEditor({ initialData, sourceText }: Props) {
                           className="w-3 h-3 rounded-full border-2"
                           style={{ backgroundColor: c.bg, borderColor: c.border }}
                         />
-                        <span className="text-xs text-gray-600">{item.label}</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">{item.label}</span>
                       </div>
                     );
                   })}
@@ -366,13 +366,13 @@ export default function ConceptMapEditor({ initialData, sourceText }: Props) {
           )}
         </ReactFlow>
       </div>
-      <div className="bg-gray-50 border-t border-gray-200 px-4 py-3">
-        <p className="text-xs text-gray-500">
+      <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           {hasExpandableNodes && sourceText ? (
             <>Clickeá el <strong>+</strong> en un nodo para profundizar ese concepto con IA. </>
           ) : null}
           Arrastrá los nodos para reorganizar. Conectá nodos arrastrando desde un punto de conexión a otro.
-          Seleccioná y presioná <kbd className="px-1 py-0.5 bg-gray-200 rounded text-[10px]">Delete</kbd> para eliminar.
+          Seleccioná y presioná <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px]">Delete</kbd> para eliminar.
         </p>
       </div>
     </div>

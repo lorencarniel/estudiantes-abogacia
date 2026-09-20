@@ -94,10 +94,10 @@ export default function MaterialsPage() {
       </div>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
           <span className="text-3xl">📂</span> Mis apuntes
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
           Guardá tus apuntes para reutilizarlos en cualquier herramienta sin tener que volver a subirlos.
         </p>
       </div>
@@ -155,7 +155,7 @@ export default function MaterialsPage() {
       )}
 
       <div>
-        <h2 className="text-lg font-bold text-gray-900 mb-4">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
           Apuntes guardados ({materials.length})
         </h2>
 

@@ -88,8 +88,8 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Tu perfil</h1>
-      <p className="text-gray-600 mb-8">
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Tu perfil</h1>
+      <p className="text-gray-600 dark:text-gray-400 mb-8">
         Completá tu perfil para personalizar tu experiencia de estudio
       </p>
 

@@ -463,11 +463,11 @@ export default function VideosPage() {
 
       <div className="flex items-center gap-3 mb-2">
         <span className="text-3xl">🎬</span>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Videos explicativos
         </h1>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
         La IA genera diapositivas con narración para que estudies como en una
         clase. Cada video tiene slides sincronizados con audio explicativo.
       </p>
@@ -529,7 +529,7 @@ export default function VideosPage() {
       )}
 
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Mis videos</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Mis videos</h2>
 
         {loadingVideos ? (
           <div className="flex justify-center py-8">

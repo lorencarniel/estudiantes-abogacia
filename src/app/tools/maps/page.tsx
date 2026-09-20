@@ -74,9 +74,9 @@ export default function ConceptMapsPage() {
 
       <div className="flex items-center gap-3 mb-2">
         <span className="text-3xl">🗺️</span>
-        <h1 className="text-3xl font-bold text-gray-900">Mapas conceptuales</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Mapas conceptuales</h1>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
         Pegá tu apunte y la IA genera un mapa conceptual interactivo. Expandí cada nodo con el botón + para profundizar en los conceptos.
       </p>
 
@@ -99,7 +99,7 @@ export default function ConceptMapsPage() {
       {mapData && (
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">{mapData.title}</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{mapData.title}</h2>
             <button
               onClick={() => setMapData(null)}
               className="text-sm text-primary-600 hover:text-primary-800 font-medium"

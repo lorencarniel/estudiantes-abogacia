@@ -198,7 +198,7 @@ export default function MaterialInput({
 
       {showSyllabus && syllabi.length > 0 && (
         <div>
-          <label htmlFor="syllabus-select" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="syllabus-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Programa de la materia (opcional)
           </label>
           <select
@@ -219,7 +219,7 @@ export default function MaterialInput({
         </div>
       )}
 
-      <div className="flex gap-1 border-b border-gray-200 mb-2">
+      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-2">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -227,8 +227,8 @@ export default function MaterialInput({
             onClick={() => setMode(tab.key)}
             className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
               mode === tab.key
-                ? "border-primary-600 text-primary-700"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-primary-600 text-primary-700 dark:text-primary-400"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             }`}
             disabled={busy}
           >
@@ -244,10 +244,10 @@ export default function MaterialInput({
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
             </div>
           ) : selectedMaterial && fileReady ? (
-            <div className="border-2 border-green-300 bg-green-50 rounded-lg p-6 text-center">
+            <div className="border-2 border-green-300 bg-green-50 dark:bg-green-900/30 dark:border-green-700 rounded-lg p-6 text-center">
               <p className="text-4xl mb-3">📄</p>
-              <p className="text-green-800 font-semibold mb-1">{fileName}</p>
-              <p className="text-green-600 text-sm">
+              <p className="text-green-800 dark:text-green-300 font-semibold mb-1">{fileName}</p>
+              <p className="text-green-600 dark:text-green-400 text-sm">
                 Apunte cargado ({fileCharCount.toLocaleString()} caracteres)
               </p>
               <button
@@ -259,7 +259,7 @@ export default function MaterialInput({
               </button>
             </div>
           ) : materials.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <p className="text-3xl mb-2">📂</p>
               <p className="text-sm">No tenés apuntes guardados.</p>
               <p className="text-xs text-gray-400 mt-1">
@@ -274,9 +274,9 @@ export default function MaterialInput({
                   type="button"
                   onClick={() => loadMaterial(m.id)}
                   disabled={loadingContent}
-                  className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors"
+                  className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <p className="font-medium text-gray-900 text-sm truncate">{m.title}</p>
+                  <p className="font-medium text-gray-900 dark:text-white text-sm truncate">{m.title}</p>
                   <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
                     {m.fileName && <span>{m.fileName}</span>}
                     <span>{m.charCount.toLocaleString()} chars</span>
@@ -292,10 +292,10 @@ export default function MaterialInput({
       {mode === "file" && (
         <div className="space-y-3">
           {fileReady && !uploading ? (
-            <div className="border-2 border-green-300 bg-green-50 rounded-lg p-6 text-center">
+            <div className="border-2 border-green-300 bg-green-50 dark:bg-green-900/30 dark:border-green-700 rounded-lg p-6 text-center">
               <p className="text-4xl mb-3">✅</p>
-              <p className="text-green-800 font-semibold mb-1">{fileName}</p>
-              <p className="text-green-600 text-sm">
+              <p className="text-green-800 dark:text-green-300 font-semibold mb-1">{fileName}</p>
+              <p className="text-green-600 dark:text-green-400 text-sm">
                 Archivo listo ({fileCharCount.toLocaleString()} caracteres extraídos)
               </p>
               <button
@@ -311,7 +311,7 @@ export default function MaterialInput({
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                 uploading
                   ? "border-primary-300 bg-primary-50"
-                  : "border-gray-300 hover:border-primary-400 hover:bg-gray-50"
+                  : "border-gray-300 hover:border-primary-400 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
               }`}
             >
               {uploading ? (
@@ -324,10 +324,10 @@ export default function MaterialInput({
               ) : (
                 <label className="cursor-pointer block">
                   <p className="text-4xl mb-3">📎</p>
-                  <p className="text-gray-700 font-medium mb-1">
+                  <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
                     Arrastrá un archivo o hacé click para seleccionar
                   </p>
-                  <p className="text-gray-400 text-sm">PDF, Word (.docx) o texto (.txt) - Máximo 20 MB</p>
+                  <p className="text-gray-400 dark:text-gray-500 text-sm">PDF, Word (.docx) o texto (.txt) - Máximo 20 MB</p>
                   <input
                     ref={fileRef}
                     type="file"
@@ -349,7 +349,7 @@ export default function MaterialInput({
 
       {mode === "text" && (
         <div>
-          <label htmlFor="material-text" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="material-text" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Pegá tu apunte o texto de estudio
           </label>
           <textarea
@@ -378,11 +378,11 @@ export default function MaterialInput({
       )}
 
       {isValid && mode !== "saved" && !saveSuccess && (
-        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
           {showSaveForm ? (
             <div className="flex items-end gap-2">
               <div className="flex-1">
-                <label htmlFor="save-title" className="block text-xs font-medium text-gray-600 mb-1">
+                <label htmlFor="save-title" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                   Nombre del apunte
                 </label>
                 <input

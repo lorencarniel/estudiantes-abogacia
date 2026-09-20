@@ -157,13 +157,13 @@ export default function FlashcardsPage() {
         </button>
 
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">{studyDeck.title}</h2>
-          <span className="text-sm text-gray-500">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{studyDeck.title}</h2>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
             {cardIndex + 1} / {studyDeck.flashcards.length}
           </span>
         </div>
 
-        <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-6">
           <div
             className="bg-primary-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
@@ -202,7 +202,7 @@ export default function FlashcardsPage() {
 
         {flipped && (
           <div className="mt-6">
-            <p className="text-sm text-gray-600 text-center mb-3 font-medium">
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-3 font-medium">
               ¿Qué tan bien la sabías?
             </p>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -265,9 +265,9 @@ export default function FlashcardsPage() {
 
       <div className="flex items-center gap-3 mb-2">
         <span className="text-3xl">🃏</span>
-        <h1 className="text-3xl font-bold text-gray-900">Flashcards</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Flashcards</h1>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
         Generá tarjetas de memoria a partir de tu material y estudialas con repetición espaciada.
       </p>
 
@@ -299,7 +299,7 @@ export default function FlashcardsPage() {
       )}
 
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Mis mazos</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Mis mazos</h2>
 
         {loadingDecks ? (
           <div className="flex justify-center py-8">

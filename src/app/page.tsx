@@ -31,6 +31,21 @@ const features = [
     title: "Cronogramas",
     description: "Planificación de estudio personalizada según tu examen y tiempo disponible.",
   },
+  {
+    icon: "🎮",
+    title: "12 juegos interactivos",
+    description: "Ahorcado, memotest, crucigrama, millonario y más para repasar jugando.",
+  },
+  {
+    icon: "📋",
+    title: "Casos prácticos",
+    description: "Resolvé casos jurídicos generados por IA con corrección automática.",
+  },
+  {
+    icon: "🧠",
+    title: "Mnemotécnicos",
+    description: "Reglas mnemotécnicas generadas por IA para memorizar conceptos complejos.",
+  },
 ];
 
 export default function HomePage() {
@@ -70,10 +85,10 @@ export default function HomePage() {
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Todo lo que necesitás para estudiar
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             Herramientas potenciadas por inteligencia artificial, pensadas
             para la carrera de Abogacía.
           </p>
@@ -82,10 +97,10 @@ export default function HomePage() {
           {features.map((f) => (
             <div key={f.title} className="card hover:shadow-md transition-shadow">
               <div className="text-4xl mb-4">{f.icon}</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                 {f.title}
               </h3>
-              <p className="text-gray-600">{f.description}</p>
+              <p className="text-gray-600 dark:text-gray-400">{f.description}</p>
             </div>
           ))}
         </div>

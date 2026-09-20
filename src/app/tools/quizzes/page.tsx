@@ -169,10 +169,10 @@ export default function QuizzesPage() {
       </div>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
           <span className="text-3xl">📝</span> Cuestionarios
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
           Simulacro de examen con 10 preguntas de opción múltiple, corrección automática y explicaciones.
         </p>
       </div>

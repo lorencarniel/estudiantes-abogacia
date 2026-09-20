@@ -28,7 +28,8 @@
 
   .btn-secondary {
     @apply bg-white text-primary-700 px-6 py-3 rounded-lg font-semibold
-           border border-primary-200 hover:bg-primary-50 transition-colors;
+           border border-primary-200 hover:bg-primary-50 transition-colors
+           dark:bg-gray-700 dark:text-primary-300 dark:border-gray-600 dark:hover:bg-gray-600;
   }
 
   .input-field {

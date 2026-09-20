@@ -142,9 +142,9 @@ export default function OralExamPage() {
       </Link>
       <div className="flex items-center gap-3 mb-2">
         <span className="text-3xl">🎤</span>
-        <h1 className="text-3xl font-bold text-gray-900">Simulacro de examen oral</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Simulacro de examen oral</h1>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
         La IA te hace 5 preguntas de examen oral. Respondé cada una y recibí corrección inmediata.
       </p>
 
@@ -163,7 +163,7 @@ export default function OralExamPage() {
       {state === "loading" && (
         <div className="card text-center py-16">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mx-auto mb-4" />
-          <p className="text-gray-500">Preparando preguntas de examen...</p>
+          <p className="text-gray-500 dark:text-gray-400">Preparando preguntas de examen...</p>
         </div>
       )}
 
@@ -171,7 +171,7 @@ export default function OralExamPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-500">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Pregunta {currentIndex + 1} de {questions.length}
               </span>
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getDifficultyColor(questions[currentIndex].difficulty)}`}>
@@ -183,7 +183,7 @@ export default function OralExamPage() {
             </button>
           </div>
 
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
             <div
               className="bg-primary-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${((currentIndex) / questions.length) * 100}%` }}
@@ -192,13 +192,13 @@ export default function OralExamPage() {
 
           <div className="card border-l-4 border-l-primary-500">
             <p className="text-xs font-semibold text-primary-600 uppercase mb-2">Pregunta del tribunal</p>
-            <p className="text-lg text-gray-900 font-medium leading-relaxed">
+            <p className="text-lg text-gray-900 dark:text-white font-medium leading-relaxed">
               {questions[currentIndex].question}
             </p>
           </div>
 
           <div className="card">
-            <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Tu respuesta</p>
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-2">Tu respuesta</p>
             <textarea
               className="input-field min-h-[150px] resize-y"
               placeholder="Escribí tu respuesta como si estuvieras frente al tribunal..."
@@ -228,7 +228,7 @@ export default function OralExamPage() {
       {state === "reviewed" && currentEvaluation && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Corrección - Pregunta {currentIndex + 1} de {questions.length}
             </span>
             <button onClick={handleReset} className="text-sm text-primary-600 hover:text-primary-800 font-medium">
@@ -236,9 +236,9 @@ export default function OralExamPage() {
             </button>
           </div>
 
-          <div className="card bg-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Tu pregunta</p>
-            <p className="text-sm text-gray-700 italic">{questions[currentIndex].question}</p>
+          <div className="card bg-gray-50 dark:bg-gray-900">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Tu pregunta</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 italic">{questions[currentIndex].question}</p>
           </div>
 
           <div className="card text-center bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-200">
@@ -252,7 +252,7 @@ export default function OralExamPage() {
               <p className="text-xs font-semibold text-green-700 uppercase mb-2">Puntos correctos</p>
               <ul className="space-y-1">
                 {currentEvaluation.correct_points.map((p, i) => (
-                  <li key={i} className="text-sm text-gray-700 flex gap-2">
+                  <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex gap-2">
                     <span className="text-green-500 shrink-0">✓</span>{p}
                   </li>
                 ))}
@@ -265,7 +265,7 @@ export default function OralExamPage() {
               <p className="text-xs font-semibold text-red-700 uppercase mb-2">Puntos faltantes</p>
               <ul className="space-y-1">
                 {currentEvaluation.missing_points.map((p, i) => (
-                  <li key={i} className="text-sm text-gray-700 flex gap-2">
+                  <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex gap-2">
                     <span className="text-red-500 shrink-0">✗</span>{p}
                   </li>
                 ))}
@@ -275,12 +275,12 @@ export default function OralExamPage() {
 
           <div className="card bg-primary-50 border-primary-200">
             <p className="text-xs font-semibold text-primary-700 uppercase mb-2">Respuesta modelo</p>
-            <p className="text-sm text-gray-800 leading-relaxed">{currentEvaluation.model_answer}</p>
+            <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{currentEvaluation.model_answer}</p>
           </div>
 
           <div className="card bg-amber-50 border-amber-200">
             <p className="text-xs font-semibold text-amber-700 uppercase mb-2">Consejo</p>
-            <p className="text-sm text-gray-800">{currentEvaluation.tip}</p>
+            <p className="text-sm text-gray-800 dark:text-gray-200">{currentEvaluation.tip}</p>
           </div>
 
           <div className="text-center">
@@ -294,7 +294,7 @@ export default function OralExamPage() {
       {state === "summary" && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">Resumen del examen</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Resumen del examen</h2>
             <button onClick={handleReset} className="text-sm text-primary-600 hover:text-primary-800 font-medium">
               Nuevo simulacro
             </button>
@@ -304,13 +304,13 @@ export default function OralExamPage() {
             <p className={`text-5xl font-bold ${getScoreColor(avgScore)}`}>
               {avgScore}/10
             </p>
-            <p className="text-gray-500 mt-1">Promedio general</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Promedio general</p>
           </div>
 
           <div className="grid grid-cols-5 gap-2">
             {finalResults.map((r, i) => (
               <div key={i} className="card text-center py-3">
-                <p className="text-xs text-gray-500 mb-1">P{i + 1}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">P{i + 1}</p>
                 <p className={`text-xl font-bold ${getScoreColor(r.evaluation.score)}`}>
                   {r.evaluation.score}
                 </p>
@@ -326,22 +326,22 @@ export default function OralExamPage() {
                     <span className={`text-lg font-bold ${getScoreColor(r.evaluation.score)}`}>
                       {r.evaluation.score}/10
                     </span>
-                    <span className="text-sm text-gray-700 line-clamp-1">{r.question.question}</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300 line-clamp-1">{r.question.question}</span>
                   </div>
-                  <span className="text-gray-400 group-open:rotate-180 transition-transform">&#9660;</span>
+                  <span className="text-gray-400 dark:text-gray-500 group-open:rotate-180 transition-transform">&#9660;</span>
                 </summary>
                 <div className="mt-4 space-y-3 border-t pt-4">
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Tu respuesta</p>
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{r.answer}</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Tu respuesta</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{r.answer}</p>
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-primary-600 uppercase mb-1">Respuesta modelo</p>
-                    <p className="text-sm text-gray-700">{r.evaluation.model_answer}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{r.evaluation.model_answer}</p>
                   </div>
                   <div className="bg-amber-50 rounded-lg p-2">
                     <p className="text-xs font-semibold text-amber-600 uppercase mb-1">Consejo</p>
-                    <p className="text-sm text-gray-700">{r.evaluation.tip}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{r.evaluation.tip}</p>
                   </div>
                 </div>
               </details>

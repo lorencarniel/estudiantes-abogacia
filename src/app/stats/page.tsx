@@ -100,8 +100,8 @@ export default function StatsPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Estadísticas</h1>
-          <p className="text-gray-600 mt-1">Tu progreso de estudio</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Estadísticas</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Tu progreso de estudio</p>
         </div>
         <Link
           href="/dashboard"
@@ -131,7 +131,7 @@ export default function StatsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="card">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
             Actividad (últimos 7 días)
           </h2>
           <div className="flex items-end justify-between gap-2 h-32">
@@ -140,14 +140,14 @@ export default function StatsPage() {
                 key={day.date}
                 className="flex-1 flex flex-col items-center gap-1"
               >
-                <span className="text-xs font-bold text-gray-700">
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
                   {day.count > 0 ? day.count : ""}
                 </span>
                 <div
                   className={`w-full rounded-t-lg transition-all ${
                     day.count > 0
                       ? "bg-primary-500"
-                      : "bg-gray-100"
+                      : "bg-gray-100 dark:bg-gray-700"
                   }`}
                   style={{
                     height: `${
@@ -166,7 +166,7 @@ export default function StatsPage() {
         </div>
 
         <div className="card">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
             Por herramienta
           </h2>
           <div className="space-y-3">
@@ -180,14 +180,14 @@ export default function StatsPage() {
                   <span className="text-lg w-7 text-center">{tool.icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-sm text-gray-700 truncate">
+                      <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
                         {tool.label}
                       </span>
-                      <span className="text-sm font-bold text-gray-900 ml-2">
+                      <span className="text-sm font-bold text-gray-900 dark:text-white ml-2">
                         {tool.count}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
                       <div
                         className="bg-primary-500 h-1.5 rounded-full transition-all"
                         style={{ width: `${pct}%` }}
@@ -205,7 +205,7 @@ export default function StatsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {stats.quizzes.total > 0 && (
             <div className="card">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                 Rendimiento en cuestionarios
               </h2>
               <div className="grid grid-cols-3 gap-4 text-center">
@@ -213,32 +213,32 @@ export default function StatsPage() {
                   <p className="text-3xl font-bold text-primary-600">
                     {stats.quizzes.avgScore}%
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Promedio</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Promedio</p>
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-green-600">
                     {stats.quizzes.passed}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Aprobados</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Aprobados</p>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-gray-600">
+                  <p className="text-3xl font-bold text-gray-600 dark:text-gray-400">
                     {stats.quizzes.total}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Total</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total</p>
                 </div>
               </div>
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-gray-500">Tasa de aprobación</span>
-                  <span className="text-xs font-bold text-gray-700">
+                  <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
                     {Math.round(
                       (stats.quizzes.passed / stats.quizzes.total) * 100
                     )}
                     %
                   </span>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
+                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
                   <div
                     className="bg-green-500 h-2 rounded-full"
                     style={{
@@ -254,7 +254,7 @@ export default function StatsPage() {
 
           {stats.games.total > 0 && (
             <div className="card">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                 Rendimiento en juegos
               </h2>
               <div className="grid grid-cols-3 gap-4 text-center">
@@ -262,19 +262,19 @@ export default function StatsPage() {
                   <p className="text-3xl font-bold text-primary-600">
                     {stats.games.avgScore}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Puntaje prom.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Puntaje prom.</p>
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-orange-600">
                     🔥 {stats.games.bestStreak}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Mejor racha</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Mejor racha</p>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-gray-600">
+                  <p className="text-3xl font-bold text-gray-600 dark:text-gray-400">
                     {stats.games.total}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Partidas</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Partidas</p>
                 </div>
               </div>
             </div>
@@ -284,8 +284,8 @@ export default function StatsPage() {
 
       {stats.flashcards.cards > 0 && (
         <div className="card mt-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Flashcards</h2>
-          <p className="text-gray-600 text-sm">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Flashcards</h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
             <span className="font-bold text-primary-600">
               {stats.flashcards.cards}
             </span>{" "}

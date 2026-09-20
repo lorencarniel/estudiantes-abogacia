@@ -61,9 +61,9 @@ export default function ComparePage() {
       </Link>
       <div className="flex items-center gap-3 mb-2">
         <span className="text-3xl">⚖️</span>
-        <h1 className="text-3xl font-bold text-gray-900">Comparador de conceptos</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Comparador de conceptos</h1>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
         Pegá tu apunte y la IA identifica conceptos que se prestan a confusión y genera una tabla comparativa.
       </p>
 
@@ -82,7 +82,7 @@ export default function ComparePage() {
       {data && (
         <div className="mt-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">{data.title}</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{data.title}</h2>
             <button onClick={() => setData(null)} className="text-sm text-primary-600 hover:text-primary-800 font-medium">
               Nueva comparación
             </button>
@@ -100,11 +100,11 @@ export default function ComparePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div className="bg-primary-50 rounded-lg p-3">
                     <p className="text-xs font-semibold text-primary-600 uppercase mb-1">{comp.concept_a}</p>
-                    <p className="text-sm text-gray-700">{comp.definition_a}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{comp.definition_a}</p>
                   </div>
                   <div className="bg-indigo-50 rounded-lg p-3">
                     <p className="text-xs font-semibold text-indigo-600 uppercase mb-1">{comp.concept_b}</p>
-                    <p className="text-sm text-gray-700">{comp.definition_b}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{comp.definition_b}</p>
                   </div>
                 </div>
 
@@ -113,7 +113,7 @@ export default function ComparePage() {
                     <p className="text-xs font-semibold text-red-600 uppercase mb-2">Diferencias</p>
                     <ul className="space-y-1">
                       {comp.differences.map((d, j) => (
-                        <li key={j} className="text-sm text-gray-700 flex gap-2">
+                        <li key={j} className="text-sm text-gray-700 dark:text-gray-300 flex gap-2">
                           <span className="text-red-400 shrink-0">✗</span>
                           {d}
                         </li>
@@ -124,7 +124,7 @@ export default function ComparePage() {
                     <p className="text-xs font-semibold text-green-600 uppercase mb-2">Semejanzas</p>
                     <ul className="space-y-1">
                       {comp.similarities.map((s, j) => (
-                        <li key={j} className="text-sm text-gray-700 flex gap-2">
+                        <li key={j} className="text-sm text-gray-700 dark:text-gray-300 flex gap-2">
                           <span className="text-green-400 shrink-0">✓</span>
                           {s}
                         </li>
@@ -136,13 +136,13 @@ export default function ComparePage() {
                 {comp.articles && (
                   <div className="bg-pink-50 rounded-lg p-3 mb-3">
                     <p className="text-xs font-semibold text-pink-600 uppercase mb-1">Normativa</p>
-                    <p className="text-sm text-gray-700">{comp.articles}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{comp.articles}</p>
                   </div>
                 )}
 
                 <div className="bg-amber-50 rounded-lg p-3">
                   <p className="text-xs font-semibold text-amber-600 uppercase mb-1">Ejemplo práctico</p>
-                  <p className="text-sm text-gray-700">{comp.example}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{comp.example}</p>
                 </div>
               </div>
             ))}

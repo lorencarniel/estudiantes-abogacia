@@ -109,13 +109,13 @@ function MatchingGameUI({ pairs, title, onComplete, onExit }: { pairs: MatchPair
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900">🔗 {title}</h2>
-        <button onClick={onExit} className="text-gray-400 hover:text-gray-600 text-sm">Salir</button>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">🔗 {title}</h2>
+        <button onClick={onExit} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm">Salir</button>
       </div>
-      <p className="text-gray-600 text-sm mb-4">Clickeá un concepto de la izquierda y luego su par de la derecha. {matched.size}/{pairs.length} pares encontrados.</p>
+      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">Clickeá un concepto de la izquierda y luego su par de la derecha. {matched.size}/{pairs.length} pares encontrados.</p>
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Conceptos</p>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Conceptos</p>
           {pairs.map((p, i) => (
             <button
               key={`l-${i}`}
@@ -126,7 +126,7 @@ function MatchingGameUI({ pairs, title, onComplete, onExit }: { pairs: MatchPair
                   ? "border-green-300 bg-green-50 text-green-700 opacity-60"
                   : selectedLeft === i
                   ? "border-primary-500 bg-primary-50 text-primary-700 ring-2 ring-primary-200"
-                  : "border-gray-200 hover:border-primary-300 text-gray-800"
+                  : "border-gray-200 dark:border-gray-700 hover:border-primary-300 text-gray-800 dark:text-gray-200"
               }`}
             >
               {p.left}
@@ -134,7 +134,7 @@ function MatchingGameUI({ pairs, title, onComplete, onExit }: { pairs: MatchPair
           ))}
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Definiciones</p>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Definiciones</p>
           {shuffledRight.map((origIdx) => (
             <button
               key={`r-${origIdx}`}
@@ -145,7 +145,7 @@ function MatchingGameUI({ pairs, title, onComplete, onExit }: { pairs: MatchPair
                   ? "border-green-300 bg-green-50 text-green-700 opacity-60"
                   : wrong === origIdx
                   ? "border-red-500 bg-red-50 text-red-700"
-                  : "border-gray-200 hover:border-indigo-300 text-gray-800"
+                  : "border-gray-200 dark:border-gray-700 hover:border-indigo-300 text-gray-800 dark:text-gray-200"
               }`}
             >
               {pairs[origIdx].right}
@@ -193,10 +193,10 @@ function OrderingGameUI({ items, title, description, explanation, onComplete, on
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900">📶 {title}</h2>
-        <button onClick={onExit} className="text-gray-400 hover:text-gray-600 text-sm">Salir</button>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">📶 {title}</h2>
+        <button onClick={onExit} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm">Salir</button>
       </div>
-      <p className="text-gray-600 text-sm mb-6">{description}</p>
+      <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">{description}</p>
       <div className="space-y-2">
         {order.map((itemIdx, pos) => {
           const isCorrect = submitted && items[itemIdx].correct_position === pos;
@@ -205,11 +205,11 @@ function OrderingGameUI({ items, title, description, explanation, onComplete, on
             <div
               key={itemIdx}
               className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
-                isCorrect ? "border-green-400 bg-green-50" : isWrong ? "border-red-400 bg-red-50" : "border-gray-200 bg-white"
+                isCorrect ? "border-green-400 bg-green-50" : isWrong ? "border-red-400 bg-red-50" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
               }`}
             >
               <span className="text-sm font-bold text-gray-400 w-6">{pos + 1}.</span>
-              <p className="flex-1 text-sm font-medium text-gray-800">{items[itemIdx].text}</p>
+              <p className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200">{items[itemIdx].text}</p>
               {!submitted && (
                 <div className="flex flex-col gap-0.5">
                   <button onClick={() => moveItem(pos, pos - 1)} disabled={pos === 0} className="text-gray-400 hover:text-gray-700 disabled:opacity-30 text-xs px-1">▲</button>
@@ -228,7 +228,7 @@ function OrderingGameUI({ items, title, description, explanation, onComplete, on
       ) : (
         <div className="mt-6 p-4 rounded-xl border-2 border-primary-200 bg-primary-50">
           <p className="font-bold text-primary-800 mb-1">{correctCount}/{items.length} en posición correcta</p>
-          <p className="text-sm text-gray-700">{explanation}</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{explanation}</p>
         </div>
       )}
     </div>
@@ -275,7 +275,7 @@ function FillBlankGameUI({ sentences, title, onComplete, onExit }: { sentences: 
     <div className="max-w-2xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-gray-900">✏️ {title}</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">✏️ {title}</h2>
           <span className="text-sm text-gray-500">{currentIdx + 1}/{sentences.length}</span>
         </div>
         <div className="flex items-center gap-3">
@@ -284,7 +284,7 @@ function FillBlankGameUI({ sentences, title, onComplete, onExit }: { sentences: 
         </div>
       </div>
 
-      <div className="w-full bg-gray-100 rounded-full h-1.5 mb-6">
+      <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 mb-6">
         <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${((currentIdx + (showResult ? 1 : 0)) / sentences.length) * 100}%` }} />
       </div>
 
@@ -936,7 +936,7 @@ function CrosswordGameUI({ words, title, onComplete, onExit }: { words: { word: 
             const isCorrect = submitted && (inputs[key] || "").toUpperCase() === cell.letter.toUpperCase();
             const isWrong = submitted && !isCorrect;
             return (
-              <div key={key} className={`w-7 h-7 border border-gray-300 relative ${submitted ? isCorrect ? "bg-green-100" : "bg-red-100" : "bg-white"}`}>
+              <div key={key} className={`w-7 h-7 border border-gray-300 dark:border-gray-600 relative ${submitted ? isCorrect ? "bg-green-100" : "bg-red-100" : "bg-white dark:bg-gray-800"}`}>
                 {cell.wordNumbers.length > 0 && (
                   <span className="absolute top-0 left-0.5 text-[7px] text-gray-500 leading-none">{cell.wordNumbers[0]}</span>
                 )}
@@ -1187,7 +1187,7 @@ export default function GamesPage() {
               {gameType === "trivia" ? "🎯" : "✅"}
             </span>
           </div>
-          <p className="text-gray-600 font-medium">Generando preguntas...</p>
+          <p className="text-gray-600 dark:text-gray-400 font-medium">Generando preguntas...</p>
           <p className="text-gray-400 text-sm">Esto puede tomar unos segundos</p>
         </div>
       </div>
@@ -1210,7 +1210,7 @@ export default function GamesPage() {
             <span className="text-sm text-gray-400">pts</span>
           </div>
           <div className="text-center">
-            <span className="text-sm font-medium text-gray-600">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               {currentQ + 1} / {game.questions.length}
             </span>
           </div>
@@ -1229,14 +1229,14 @@ export default function GamesPage() {
           </div>
         </div>
 
-        <div className="w-full h-2 bg-gray-200 rounded-full mb-6 overflow-hidden">
+        <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full mb-6 overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-100 ${timerColor}`}
             style={{ width: `${timerPct}%` }}
           />
         </div>
 
-        <div className="w-full bg-gray-100 rounded-full h-1.5 mb-6">
+        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 mb-6">
           <div
             className="h-full bg-primary-500 rounded-full transition-all"
             style={{
@@ -1268,7 +1268,7 @@ export default function GamesPage() {
               }
             } else {
               btnClass +=
-                "border-gray-200 hover:border-primary-400 hover:bg-primary-50 text-gray-700 active:scale-[0.98]";
+                "border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 text-gray-700 dark:text-gray-300 active:scale-[0.98]";
             }
 
             if (!isTrivia) {
@@ -1289,7 +1289,7 @@ export default function GamesPage() {
                 className={btnClass}
               >
                 {isTrivia && (
-                  <span className="inline-block w-7 h-7 rounded-full bg-gray-100 text-gray-500 text-sm font-bold leading-7 text-center mr-3 shrink-0">
+                  <span className="inline-block w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-bold leading-7 text-center mr-3 shrink-0">
                     {String.fromCharCode(65 + idx)}
                   </span>
                 )}
@@ -1342,35 +1342,35 @@ export default function GamesPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="card text-center mb-8 bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-200">
           <div className="text-6xl mb-2">{getMedal(pct)}</div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-1">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {score} puntos
           </h2>
           <p className="text-gray-500 mb-4">{game.title}</p>
 
           {isInteractive ? (
             <div className="max-w-xs mx-auto mb-6">
-              <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
                 <p className="text-2xl font-bold text-primary-600">{pct}%</p>
-                <p className="text-xs text-gray-500">Rendimiento</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Rendimiento</p>
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mb-6">
-              <div className="bg-white rounded-xl p-3 shadow-sm">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm">
                 <p className="text-2xl font-bold text-green-600">
                   {correctCount}/{totalQuestions}
                 </p>
-                <p className="text-xs text-gray-500">Correctas</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Correctas</p>
               </div>
-              <div className="bg-white rounded-xl p-3 shadow-sm">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm">
                 <p className="text-2xl font-bold text-orange-600">
                   🔥 {maxStreak}
                 </p>
-                <p className="text-xs text-gray-500">Racha máx.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Racha máx.</p>
               </div>
-              <div className="bg-white rounded-xl p-3 shadow-sm">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm">
                 <p className="text-2xl font-bold text-blue-600">{avgTime}s</p>
-                <p className="text-xs text-gray-500">Tiempo prom.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Tiempo prom.</p>
               </div>
             </div>
           )}
@@ -1381,7 +1381,7 @@ export default function GamesPage() {
             </button>
             <Link
               href="/dashboard"
-              className="py-2 px-6 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium"
+              className="py-2 px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium"
             >
               Dashboard
             </Link>
@@ -1390,7 +1390,7 @@ export default function GamesPage() {
 
         {!isInteractive && (
           <>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
               Revisión de respuestas
             </h3>
             <div className="space-y-3">
@@ -1455,9 +1455,9 @@ export default function GamesPage() {
 
       <div className="flex items-center gap-3 mb-2">
         <span className="text-3xl">🎮</span>
-        <h1 className="text-3xl font-bold text-gray-900">Juegos interactivos</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Juegos interactivos</h1>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
         Poné a prueba tus conocimientos con distintos modos de juego interactivos.
       </p>
 
@@ -1529,7 +1529,7 @@ export default function GamesPage() {
       </div>
 
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Mis partidas</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Mis partidas</h2>
 
         {loadingGames ? (
           <div className="flex justify-center py-8">

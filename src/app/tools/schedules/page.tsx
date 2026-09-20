@@ -210,7 +210,7 @@ export default function SchedulesPage() {
         </button>
 
         <div className="flex items-start justify-between gap-4 mb-2">
-          <h1 className="text-2xl font-bold text-gray-900">{viewSchedule.title}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{viewSchedule.title}</h1>
           <span className="text-sm text-gray-500 shrink-0">
             Examen: {new Date(viewSchedule.examDate).toLocaleDateString("es-AR")}
           </span>
@@ -331,9 +331,9 @@ export default function SchedulesPage() {
 
       <div className="flex items-center gap-3 mb-2">
         <span className="text-3xl">📅</span>
-        <h1 className="text-3xl font-bold text-gray-900">Cronogramas de estudio</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Cronogramas de estudio</h1>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
         La IA arma tu plan día por día hasta el examen, priorizando temas débiles.
       </p>
 
@@ -467,7 +467,7 @@ export default function SchedulesPage() {
       </div>
 
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Mis cronogramas</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Mis cronogramas</h2>
 
         {loadingSchedules ? (
           <div className="flex justify-center py-8">

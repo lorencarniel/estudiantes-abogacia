@@ -23,6 +23,11 @@ const TYPE_META: Record<string, { icon: string; label: string; color: string }> 
   audio: { icon: "🎧", label: "Audio", color: "bg-pink-100 text-pink-700" },
   game: { icon: "🎮", label: "Juego", color: "bg-rose-100 text-rose-700" },
   video: { icon: "🎬", label: "Video", color: "bg-violet-100 text-violet-700" },
+  comparison: { icon: "⚖️", label: "Comparación", color: "bg-cyan-100 text-cyan-700" },
+  practical_case: { icon: "📋", label: "Caso práctico", color: "bg-orange-100 text-orange-700" },
+  oral_exam: { icon: "🎤", label: "Examen oral", color: "bg-red-100 text-red-700" },
+  mnemonic: { icon: "🧠", label: "Mnemotécnico", color: "bg-lime-100 text-lime-700" },
+  glossary: { icon: "📚", label: "Glosario", color: "bg-emerald-100 text-emerald-700" },
 };
 
 const FILTERS = [
@@ -99,9 +104,9 @@ export default function HistoryPage() {
 
       <div className="flex items-center gap-3 mb-2">
         <span className="text-3xl">📚</span>
-        <h1 className="text-3xl font-bold text-gray-900">Mi historial</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Mi historial</h1>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
         Todo tu material de estudio generado, guardado y listo para revisar.
       </p>
 
@@ -113,7 +118,7 @@ export default function HistoryPage() {
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               filter === f.key
                 ? "bg-primary-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
             }`}
           >
             {f.label}
@@ -161,7 +166,7 @@ export default function HistoryPage() {
                           </span>
                         )}
                       </div>
-                      <h3 className="font-semibold text-gray-900 truncate">{item.title}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white truncate">{item.title}</h3>
                       <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
                     </div>
                     <button
@@ -183,7 +188,7 @@ export default function HistoryPage() {
             <div className="lg:col-span-2">
               <div className="card sticky top-20">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">{selectedItem.title}</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{selectedItem.title}</h2>
                   <button
                     onClick={() => setSelectedItem(null)}
                     className="text-gray-400 hover:text-gray-600 p-1"
@@ -211,14 +216,14 @@ function ContentPreview({ item }: { item: HistoryItem }) {
     return (
       <div className="space-y-4">
         <div
-          className="prose prose-sm max-w-none text-gray-700"
+          className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300"
           dangerouslySetInnerHTML={{
             __html: (d.summary || "").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br/>"),
           }}
         />
         {d.key_concepts && d.key_concepts.length > 0 && (
-          <div className="border-t pt-4">
-            <h3 className="font-semibold text-gray-800 mb-2">Conceptos clave</h3>
+          <div className="border-t dark:border-gray-700 pt-4">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Conceptos clave</h3>
             <div className="space-y-2">
               {d.key_concepts.map((c, i) => (
                 <div key={i} className="bg-blue-50 rounded-lg p-3">
@@ -239,11 +244,11 @@ function ContentPreview({ item }: { item: HistoryItem }) {
       <div className="space-y-4">
         {d.sections?.map((s, i) => (
           <div key={i}>
-            <h3 className="font-bold text-gray-900">{s.heading}</h3>
-            {s.note && <p className="text-gray-500 text-sm">{s.note}</p>}
+            <h3 className="font-bold text-gray-900 dark:text-white">{s.heading}</h3>
+            {s.note && <p className="text-gray-500 dark:text-gray-400 text-sm">{s.note}</p>}
             <ul className="mt-2 space-y-1 ml-4">
               {s.items.map((it, j) => (
-                <li key={j} className="text-gray-700 text-sm list-disc">
+                <li key={j} className="text-gray-700 dark:text-gray-300 text-sm list-disc">
                   {it.text}
                   {it.note && <span className="text-gray-400 text-xs ml-2">— {it.note}</span>}
                 </li>
@@ -264,8 +269,8 @@ function ContentPreview({ item }: { item: HistoryItem }) {
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {d.nodes?.map((n, i) => (
-            <div key={i} className="bg-gray-50 rounded-lg p-2 text-center">
-              <p className="text-sm font-medium text-gray-800">{n.label}</p>
+            <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 text-center">
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{n.label}</p>
               <p className="text-xs text-gray-400">{n.category}</p>
             </div>
           ))}
@@ -294,7 +299,7 @@ function ContentPreview({ item }: { item: HistoryItem }) {
     return (
       <div className="space-y-4">
         <div className="flex gap-3">
-          <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+          <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
             Dificultad: {d.difficulty}
           </span>
           {d.completed && (
@@ -310,8 +315,8 @@ function ContentPreview({ item }: { item: HistoryItem }) {
             const userAnswer = d.answers?.[i];
             const isCorrect = userAnswer === q.correct_index;
             return (
-              <div key={i} className="border rounded-lg p-3">
-                <p className="font-medium text-gray-900 text-sm mb-2">
+              <div key={i} className="border dark:border-gray-700 rounded-lg p-3">
+                <p className="font-medium text-gray-900 dark:text-white text-sm mb-2">
                   {i + 1}. {q.statement}
                 </p>
                 <div className="space-y-1">
@@ -329,7 +334,7 @@ function ContentPreview({ item }: { item: HistoryItem }) {
                   })}
                 </div>
                 {d.completed && (
-                  <p className="text-xs text-gray-500 mt-2 bg-gray-50 rounded p-2">{q.explanation}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 bg-gray-50 dark:bg-gray-800 rounded p-2">{q.explanation}</p>
                 )}
               </div>
             );
@@ -346,9 +351,9 @@ function ContentPreview({ item }: { item: HistoryItem }) {
         <p className="text-sm text-gray-500">{d.cardCount || d.cards?.length || 0} tarjetas</p>
         <div className="space-y-2">
           {d.cards?.slice(0, 10).map((c, i) => (
-            <div key={i} className="border rounded-lg p-3">
-              <p className="font-medium text-gray-900 text-sm">{c.front}</p>
-              <p className="text-gray-600 text-sm mt-1">{c.back}</p>
+            <div key={i} className="border dark:border-gray-700 rounded-lg p-3">
+              <p className="font-medium text-gray-900 dark:text-white text-sm">{c.front}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{c.back}</p>
             </div>
           ))}
           {(d.cards?.length || 0) > 10 && (
@@ -373,19 +378,19 @@ function ContentPreview({ item }: { item: HistoryItem }) {
     return (
       <div className="space-y-4">
         <div className="flex gap-3 text-sm">
-          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">
+          <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-semibold">
             {d.totalDays} días
           </span>
-          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">
+          <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-semibold">
             Examen: {d.examDate ? new Date(d.examDate).toLocaleDateString("es-AR") : "—"}
           </span>
         </div>
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm text-gray-600">Progreso</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Progreso</span>
             <span className="text-sm font-bold text-primary-700">{progress}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
             <div className="bg-primary-600 h-2 rounded-full" style={{ width: `${progress}%` }} />
           </div>
         </div>
@@ -431,7 +436,11 @@ function ContentPreview({ item }: { item: HistoryItem }) {
       <div className="space-y-4">
         <div className="flex gap-3 text-sm">
           <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">
-            {d.gameType === "trivia" ? "🎯 Trivia" : "✅ V/F"}
+            {
+              {trivia:"🎯 Trivia", true_false:"✅ V/F", matching:"🔗 Relacionar", ordering:"📋 Ordenar", fill_blank:"✏️ Completar",
+               hangman:"💀 Ahorcado", memory:"🧠 Memotest", categorize:"📂 Categorizar", article_fill:"📜 Artículos",
+               millionaire:"💰 Millonario", timeline:"📅 Línea de tiempo", crossword:"⬜ Crucigrama"}[d.gameType || ""] || d.gameType
+            }
           </span>
           {d.completed && d.score != null && (
             <span className="bg-primary-100 text-primary-700 px-2 py-1 rounded-full text-xs font-semibold">

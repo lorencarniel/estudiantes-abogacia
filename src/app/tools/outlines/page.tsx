@@ -87,10 +87,10 @@ export default function OutlinesPage() {
       </div>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
           <span className="text-3xl">📊</span> Esquemas
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
           Pegá tu apunte y la IA genera un esquema jerárquico con secciones colapsables.
         </p>
       </div>
