@@ -102,6 +102,7 @@ model GeneratedContent {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, type])
+  @@index([userId, createdAt])
   @@map("generated_contents")
 }
 

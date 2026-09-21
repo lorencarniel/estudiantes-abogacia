@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { evaluateAnswerPrompt, evaluateAnswerSchema } from "@/lib/prompts";
+import { safeJsonParse } from "@/lib/utils";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
       max_tokens: 2000,
     });
 
-    const content = JSON.parse(response.choices[0].message.content || "{}");
+    const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as any);
     return NextResponse.json(content);
   } catch (err) {
     console.error("Evaluate answer error:", err);

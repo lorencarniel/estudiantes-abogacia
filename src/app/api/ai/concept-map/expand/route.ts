@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { expandNodePrompt, expandNodeSchema } from "@/lib/prompts";
+import { safeJsonParse } from "@/lib/utils";
 
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
       max_tokens: 2000,
     });
 
-    const content = JSON.parse(response.choices[0].message.content || "{}");
+    const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as any);
 
     const prefix = parentId;
     const nodes = content.nodes.map((n: { id: string; label: string; category: string; expandable: boolean }, i: number) => ({

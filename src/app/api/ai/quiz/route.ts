@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       max_tokens: 4000,
     });
 
-    const content = JSON.parse(response.choices[0].message.content || "{}");
+    const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as any);
 
     const quiz = await prisma.quizAttempt.create({
       data: {
@@ -136,10 +136,14 @@ export async function PUT(request: Request) {
   const score = results.filter((r) => r.correct).length;
   const passed = score >= 7;
 
-  await prisma.quizAttempt.update({
-    where: { id: quizId },
+  const updated = await prisma.quizAttempt.updateMany({
+    where: { id: quizId, completedAt: null },
     data: { answers: JSON.stringify(answers), score, passed, completedAt: new Date() },
   });
+
+  if (updated.count === 0) {
+    return NextResponse.json({ error: "Cuestionario ya entregado" }, { status: 409 });
+  }
 
   addXP(session.user.id, "quiz_complete").catch(() => {});
   if (passed) addXP(session.user.id, "quiz_pass").catch(() => {});

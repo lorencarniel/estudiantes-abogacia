@@ -6,6 +6,7 @@ import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { summaryPrompt, summarySchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { addXP } from "@/lib/xp";
+import { safeJsonParse } from "@/lib/utils";
 
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
       max_tokens: 4000,
     });
 
-    const content = JSON.parse(response.choices[0].message.content || "{}");
+    const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as any);
 
     const saved = await prisma.generatedContent.create({
       data: {

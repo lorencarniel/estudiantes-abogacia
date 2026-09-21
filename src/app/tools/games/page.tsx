@@ -123,9 +123,9 @@ function MatchingGameUI({ pairs, title, onComplete, onExit }: { pairs: MatchPair
               disabled={matched.has(i)}
               className={`w-full text-left p-3 rounded-lg border-2 text-sm font-medium transition-all ${
                 matched.has(i)
-                  ? "border-green-300 bg-green-50 text-green-700 opacity-60"
+                  ? "border-green-300 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 opacity-60"
                   : selectedLeft === i
-                  ? "border-primary-500 bg-primary-50 text-primary-700 ring-2 ring-primary-200"
+                  ? "border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 ring-2 ring-primary-200"
                   : "border-gray-200 dark:border-gray-700 hover:border-primary-300 text-gray-800 dark:text-gray-200"
               }`}
             >
@@ -142,9 +142,9 @@ function MatchingGameUI({ pairs, title, onComplete, onExit }: { pairs: MatchPair
               disabled={matched.has(origIdx)}
               className={`w-full text-left p-3 rounded-lg border-2 text-sm transition-all ${
                 matched.has(origIdx)
-                  ? "border-green-300 bg-green-50 text-green-700 opacity-60"
+                  ? "border-green-300 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 opacity-60"
                   : wrong === origIdx
-                  ? "border-red-500 bg-red-50 text-red-700"
+                  ? "border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400"
                   : "border-gray-200 dark:border-gray-700 hover:border-indigo-300 text-gray-800 dark:text-gray-200"
               }`}
             >
@@ -205,15 +205,15 @@ function OrderingGameUI({ items, title, description, explanation, onComplete, on
             <div
               key={itemIdx}
               className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
-                isCorrect ? "border-green-400 bg-green-50" : isWrong ? "border-red-400 bg-red-50" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                isCorrect ? "border-green-400 bg-green-50 dark:bg-green-900/30 dark:border-green-700" : isWrong ? "border-red-400 bg-red-50 dark:bg-red-900/30 dark:border-red-700" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
               }`}
             >
               <span className="text-sm font-bold text-gray-400 w-6">{pos + 1}.</span>
               <p className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200">{items[itemIdx].text}</p>
               {!submitted && (
                 <div className="flex flex-col gap-0.5">
-                  <button onClick={() => moveItem(pos, pos - 1)} disabled={pos === 0} className="text-gray-400 hover:text-gray-700 disabled:opacity-30 text-xs px-1">▲</button>
-                  <button onClick={() => moveItem(pos, pos + 1)} disabled={pos === order.length - 1} className="text-gray-400 hover:text-gray-700 disabled:opacity-30 text-xs px-1">▼</button>
+                  <button onClick={() => moveItem(pos, pos - 1)} disabled={pos === 0} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-30 text-xs px-1">▲</button>
+                  <button onClick={() => moveItem(pos, pos + 1)} disabled={pos === order.length - 1} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-30 text-xs px-1">▼</button>
                 </div>
               )}
               {submitted && (
@@ -226,8 +226,8 @@ function OrderingGameUI({ items, title, description, explanation, onComplete, on
       {!submitted ? (
         <button onClick={handleSubmit} className="btn-primary mt-6">Verificar orden</button>
       ) : (
-        <div className="mt-6 p-4 rounded-xl border-2 border-primary-200 bg-primary-50">
-          <p className="font-bold text-primary-800 mb-1">{correctCount}/{items.length} en posición correcta</p>
+        <div className="mt-6 p-4 rounded-xl border-2 border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30">
+          <p className="font-bold text-primary-800 dark:text-primary-300 mb-1">{correctCount}/{items.length} en posición correcta</p>
           <p className="text-sm text-gray-700 dark:text-gray-300">{explanation}</p>
         </div>
       )}
@@ -280,7 +280,7 @@ function FillBlankGameUI({ sentences, title, onComplete, onExit }: { sentences: 
         </div>
         <div className="flex items-center gap-3">
           <span className="text-primary-600 font-bold">{score} pts</span>
-          <button onClick={onExit} className="text-gray-400 hover:text-gray-600 text-sm">Salir</button>
+          <button onClick={onExit} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm">Salir</button>
         </div>
       </div>
 
@@ -289,7 +289,7 @@ function FillBlankGameUI({ sentences, title, onComplete, onExit }: { sentences: 
       </div>
 
       <div className="card mb-6">
-        <p className="text-lg leading-relaxed text-gray-900">
+        <p className="text-lg leading-relaxed text-gray-900 dark:text-white">
           {current.text_with_blank.split("___").map((part, i, arr) => (
             <span key={i}>
               {part}
@@ -328,14 +328,14 @@ function FillBlankGameUI({ sentences, title, onComplete, onExit }: { sentences: 
               💡 Ver pista (-50 pts)
             </button>
           ) : (
-            <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded-lg">💡 Pista: {current.hint}</p>
+            <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 p-2 rounded-lg">💡 Pista: {current.hint}</p>
           )}
         </div>
       ) : (
         <div className="space-y-3">
-          <div className={`p-4 rounded-xl border-2 ${isCorrect ? "border-green-300 bg-green-50" : "border-red-300 bg-red-50"}`}>
+          <div className={`p-4 rounded-xl border-2 ${isCorrect ? "border-green-300 bg-green-50 dark:bg-green-900/30 dark:border-green-700" : "border-red-300 bg-red-50 dark:bg-red-900/30 dark:border-red-700"}`}>
             <p className="font-bold text-sm mb-1">{isCorrect ? "✅ ¡Correcto!" : `❌ La respuesta era: ${current.answer}`}</p>
-            <p className="text-sm text-gray-700">{current.explanation}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300">{current.explanation}</p>
           </div>
           <button onClick={nextQuestion} className="btn-primary">
             {currentIdx + 1 >= sentences.length ? "Ver resultados" : "Siguiente"}
@@ -396,12 +396,12 @@ function HangmanGameUI({ words, title, onComplete, onExit }: { words: HangmanWor
     <div className="card">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">{title}</h2>
-        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
+        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Salir</button>
       </div>
       <p className="text-sm text-gray-500 mb-2">Palabra {wordIdx + 1} de {words.length} | Resueltas: {solved}</p>
-      <div className="bg-amber-50 rounded-lg p-3 mb-4">
-        <p className="text-xs font-semibold text-amber-700 uppercase mb-1">Pista</p>
-        <p className="text-sm text-gray-700">{current.hint}</p>
+      <div className="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-3 mb-4">
+        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase mb-1">Pista</p>
+        <p className="text-sm text-gray-700 dark:text-gray-300">{current.hint}</p>
       </div>
       <div className="text-center mb-4">
         <div className="font-mono text-3xl tracking-[0.3em] mb-4">
@@ -425,7 +425,7 @@ function HangmanGameUI({ words, title, onComplete, onExit }: { words: HangmanWor
               className={`w-9 h-9 rounded-lg text-sm font-bold transition-all ${
                 guessed.has(l)
                   ? normalized.includes(l) ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"
-                  : "bg-gray-100 hover:bg-primary-100 text-gray-700"
+                  : "bg-gray-100 dark:bg-gray-700 hover:bg-primary-100 dark:hover:bg-primary-900/30 text-gray-700 dark:text-gray-300"
               }`}>
               {l}
             </button>
@@ -433,7 +433,7 @@ function HangmanGameUI({ words, title, onComplete, onExit }: { words: HangmanWor
         </div>
       )}
       {showResult && (
-        <div className={`text-center p-4 rounded-lg mb-4 ${isWordComplete ? "bg-green-50" : "bg-red-50"}`}>
+        <div className={`text-center p-4 rounded-lg mb-4 ${isWordComplete ? "bg-green-50 dark:bg-green-900/30" : "bg-red-50 dark:bg-red-900/30"}`}>
           <p className={`font-bold ${isWordComplete ? "text-green-700" : "text-red-700"}`}>
             {isWordComplete ? "¡Correcto!" : `La palabra era: ${current.word.toUpperCase()}`}
           </p>
@@ -499,7 +499,7 @@ function MemoryGameUI({ pairs, title, onComplete, onExit }: { pairs: MemoryPair[
     <div className="card">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">{title}</h2>
-        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
+        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Salir</button>
       </div>
       <p className="text-sm text-gray-500 mb-4">Pares encontrados: {matchedCount}/{pairs.length} | Movimientos: {moves}</p>
       <div className="grid grid-cols-4 gap-2">
@@ -545,9 +545,9 @@ function CategorizeGameUI({ items, categories, title, explanation, onComplete, o
     <div className="card">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">{title}</h2>
-        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
+        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Salir</button>
       </div>
-      <p className="text-sm text-gray-600 mb-4">Asigná cada concepto a su categoría correcta.</p>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Asigná cada concepto a su categoría correcta.</p>
       <div className="flex gap-2 mb-4 flex-wrap">
         {categories.map(cat => (
           <span key={cat} className="bg-primary-100 text-primary-800 text-xs font-bold px-3 py-1 rounded-full">{cat}</span>
@@ -557,10 +557,10 @@ function CategorizeGameUI({ items, categories, title, explanation, onComplete, o
         {items.map((item, i) => (
           <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${
             submitted
-              ? assignments[i] === item.category ? "bg-green-50 border-green-300" : "bg-red-50 border-red-300"
-              : assignments[i] ? "bg-primary-50 border-primary-200" : "bg-white border-gray-200"
+              ? assignments[i] === item.category ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700" : "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700"
+              : assignments[i] ? "bg-primary-50 dark:bg-primary-900/30 border-primary-200 dark:border-primary-700" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
           }`}>
-            <span className="text-sm font-medium text-gray-800 flex-1">{item.text}</span>
+            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{item.text}</span>
             {submitted && assignments[i] !== item.category && (
               <span className="text-xs text-red-600">{item.category}</span>
             )}
@@ -570,7 +570,7 @@ function CategorizeGameUI({ items, categories, title, explanation, onComplete, o
                   className={`text-xs px-2 py-1 rounded-full transition-all ${
                     assignments[i] === cat
                       ? "bg-primary-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}>
                   {cat.length > 15 ? cat.slice(0, 15) + "..." : cat}
                 </button>
@@ -586,7 +586,7 @@ function CategorizeGameUI({ items, categories, title, explanation, onComplete, o
       ) : (
         <div className="text-center">
           <p className="text-lg font-bold text-primary-700">{score}/{items.length} correctas</p>
-          {explanation && <p className="text-sm text-gray-600 mt-2">{explanation}</p>}
+          {explanation && <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{explanation}</p>}
         </div>
       )}
     </div>
@@ -631,25 +631,25 @@ function ArticleFillGameUI({ articles, title, onComplete, onExit }: { articles: 
     <div className="card">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">{title}</h2>
-        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
+        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Salir</button>
       </div>
       <p className="text-sm text-gray-500 mb-2">Artículo {artIdx + 1} de {articles.length}</p>
-      <div className="bg-gray-50 rounded-lg p-4 mb-4">
-        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{current.reference}</p>
-        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{current.text_with_blanks}</p>
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{current.reference}</p>
+        <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">{current.text_with_blanks}</p>
       </div>
       <div className="space-y-3 mb-4">
         {current.blanks.map((blank, bi) => (
           <div key={bi}>
-            <p className="text-xs font-semibold text-gray-600 mb-1">Espacio {bi + 1}</p>
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Espacio {bi + 1}</p>
             <div className="flex flex-wrap gap-2">
               {blank.options.map(opt => (
                 <button key={opt} onClick={() => selectAnswer(bi, opt)} disabled={submitted}
                   className={`text-sm px-3 py-1.5 rounded-lg border transition-all ${
                     submitted
-                      ? opt === blank.answer ? "bg-green-100 border-green-400 text-green-800 font-bold"
-                        : answers[`${artIdx}-${bi}`] === opt ? "bg-red-100 border-red-400 text-red-800" : "bg-gray-50 border-gray-200 text-gray-400"
-                      : answers[`${artIdx}-${bi}`] === opt ? "bg-primary-100 border-primary-400 text-primary-800" : "bg-white border-gray-200 hover:border-gray-400"
+                      ? opt === blank.answer ? "bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-600 text-green-800 dark:text-green-300 font-bold"
+                        : answers[`${artIdx}-${bi}`] === opt ? "bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-600 text-red-800 dark:text-red-300" : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400"
+                      : answers[`${artIdx}-${bi}`] === opt ? "bg-primary-100 dark:bg-primary-900/30 border-primary-400 dark:border-primary-600 text-primary-800 dark:text-primary-300" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                   }`}>
                   {opt}
                 </button>
@@ -843,9 +843,9 @@ function TimelineGameUI({ events, title, description, explanation, onComplete, o
     <div className="card">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">{title}</h2>
-        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
+        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Salir</button>
       </div>
-      <p className="text-sm text-gray-600 mb-4">{description}</p>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{description}</p>
       <div className="space-y-2 mb-4">
         {order.map((evtIdx, pos) => {
           const evt = events[evtIdx];
@@ -853,15 +853,15 @@ function TimelineGameUI({ events, title, description, explanation, onComplete, o
           const isWrong = submitted && evt.correct_position !== pos;
           return (
             <div key={evtIdx} className={`flex items-center gap-3 p-3 rounded-lg border ${
-              isCorrect ? "bg-green-50 border-green-300" : isWrong ? "bg-red-50 border-red-300" : "bg-white border-gray-200"
+              isCorrect ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700" : isWrong ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
             }`}>
               <div className="flex flex-col gap-0.5">
-                <button onClick={() => moveUp(pos)} disabled={submitted || pos === 0} className="text-gray-400 hover:text-gray-700 disabled:opacity-20">&#9650;</button>
-                <button onClick={() => moveDown(pos)} disabled={submitted || pos >= order.length - 1} className="text-gray-400 hover:text-gray-700 disabled:opacity-20">&#9660;</button>
+                <button onClick={() => moveUp(pos)} disabled={submitted || pos === 0} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-20">&#9650;</button>
+                <button onClick={() => moveDown(pos)} disabled={submitted || pos >= order.length - 1} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-20">&#9660;</button>
               </div>
               <span className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-bold flex items-center justify-center shrink-0">{pos + 1}</span>
               <div className="flex-1">
-                <p className="font-medium text-sm text-gray-800">{evt.label}</p>
+                <p className="font-medium text-sm text-gray-800 dark:text-gray-200">{evt.label}</p>
                 <p className="text-xs text-gray-500">{evt.detail}</p>
               </div>
               <span className="text-xs font-mono text-gray-400">{evt.year}</span>
@@ -875,7 +875,7 @@ function TimelineGameUI({ events, title, description, explanation, onComplete, o
       ) : (
         <div className="text-center">
           <p className="text-lg font-bold text-primary-700">{score}/{events.length} en posición correcta</p>
-          {explanation && <p className="text-sm text-gray-600 mt-2">{explanation}</p>}
+          {explanation && <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{explanation}</p>}
         </div>
       )}
     </div>
@@ -923,7 +923,7 @@ function CrosswordGameUI({ words, title, onComplete, onExit }: { words: { word: 
     <div className="card">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">{title}</h2>
-        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
+        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Salir</button>
       </div>
       <div className="overflow-x-auto mb-4">
         <div className="inline-grid gap-0" style={{ gridTemplateColumns: `repeat(${gridSize}, 28px)` }}>
@@ -936,7 +936,7 @@ function CrosswordGameUI({ words, title, onComplete, onExit }: { words: { word: 
             const isCorrect = submitted && (inputs[key] || "").toUpperCase() === cell.letter.toUpperCase();
             const isWrong = submitted && !isCorrect;
             return (
-              <div key={key} className={`w-7 h-7 border border-gray-300 dark:border-gray-600 relative ${submitted ? isCorrect ? "bg-green-100" : "bg-red-100" : "bg-white dark:bg-gray-800"}`}>
+              <div key={key} className={`w-7 h-7 border border-gray-300 dark:border-gray-600 relative ${submitted ? isCorrect ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30" : "bg-white dark:bg-gray-800"}`}>
                 {cell.wordNumbers.length > 0 && (
                   <span className="absolute top-0 left-0.5 text-[7px] text-gray-500 leading-none">{cell.wordNumbers[0]}</span>
                 )}
@@ -957,13 +957,13 @@ function CrosswordGameUI({ words, title, onComplete, onExit }: { words: { word: 
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Horizontales</p>
           {words.filter(w => w.direction === "horizontal").sort((a, b) => a.number - b.number).map(w => (
-            <p key={w.number} className="text-xs text-gray-700 mb-1"><strong>{w.number}.</strong> {w.clue}</p>
+            <p key={w.number} className="text-xs text-gray-700 dark:text-gray-300 mb-1"><strong>{w.number}.</strong> {w.clue}</p>
           ))}
         </div>
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Verticales</p>
           {words.filter(w => w.direction === "vertical").sort((a, b) => a.number - b.number).map(w => (
-            <p key={w.number} className="text-xs text-gray-700 mb-1"><strong>{w.number}.</strong> {w.clue}</p>
+            <p key={w.number} className="text-xs text-gray-700 dark:text-gray-300 mb-1"><strong>{w.number}.</strong> {w.clue}</p>
           ))}
         </div>
       </div>
@@ -1266,7 +1266,7 @@ export default function GamesPage() {
         </div>
 
         <div className="card mb-6">
-          <p className="text-lg font-medium text-gray-900 leading-relaxed">
+          <p className="text-lg font-medium text-gray-900 dark:text-white leading-relaxed">
             {question.statement}
           </p>
         </div>
@@ -1279,16 +1279,16 @@ export default function GamesPage() {
             if (showFeedback) {
               if (idx === question.correct_index) {
                 btnClass +=
-                  "border-green-500 bg-green-50 text-green-800 ring-2 ring-green-300";
+                  "border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 ring-2 ring-green-300";
               } else if (idx === selectedAnswer && idx !== question.correct_index) {
                 btnClass +=
-                  "border-red-500 bg-red-50 text-red-800 ring-2 ring-red-300";
+                  "border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 ring-2 ring-red-300";
               } else {
                 btnClass += "border-gray-200 text-gray-400 opacity-50";
               }
             } else {
               btnClass +=
-                "border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 text-gray-700 dark:text-gray-300 active:scale-[0.98]";
+                "border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 text-gray-700 dark:text-gray-300 active:scale-[0.98]";
             }
 
             if (!isTrivia) {
@@ -1296,8 +1296,8 @@ export default function GamesPage() {
               if (!showFeedback) {
                 btnClass +=
                   idx === 0
-                    ? " hover:border-green-400 hover:bg-green-50"
-                    : " hover:border-red-400 hover:bg-red-50";
+                    ? " hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/30"
+                    : " hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-900/30";
               }
             }
 
@@ -1327,9 +1327,9 @@ export default function GamesPage() {
             className={`mt-4 p-4 rounded-xl border-2 ${
               selectedAnswer === question.correct_index || selectedAnswer === -1
                 ? selectedAnswer === -1
-                  ? "border-yellow-300 bg-yellow-50"
-                  : "border-green-300 bg-green-50"
-                : "border-red-300 bg-red-50"
+                  ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/30 dark:border-yellow-700"
+                  : "border-green-300 bg-green-50 dark:bg-green-900/30 dark:border-green-700"
+                : "border-red-300 bg-red-50 dark:bg-red-900/30 dark:border-red-700"
             }`}
           >
             <div className="flex items-center gap-2 mb-1">
@@ -1341,7 +1341,7 @@ export default function GamesPage() {
                   : "❌ Incorrecto"}
               </span>
             </div>
-            <p className="text-sm text-gray-700">{question.explanation}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300">{question.explanation}</p>
           </div>
         )}
       </div>
@@ -1360,7 +1360,7 @@ export default function GamesPage() {
 
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="card text-center mb-8 bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-200">
+        <div className="card text-center mb-8 bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/30 dark:to-indigo-900/30 border-primary-200 dark:border-primary-700">
           <div className="text-6xl mb-2">{getMedal(pct)}</div>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {score} puntos
@@ -1430,7 +1430,7 @@ export default function GamesPage() {
                         {correct ? "✅" : timedOut ? "⏰" : "❌"}
                       </span>
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900 mb-1">
+                        <p className="font-medium text-gray-900 dark:text-white mb-1">
                           {question.statement}
                         </p>
                         {!correct && (
@@ -1479,7 +1479,7 @@ export default function GamesPage() {
       </p>
 
       <div className="card mb-8">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
           Elegí el modo de juego
         </h2>
 
@@ -1504,19 +1504,19 @@ export default function GamesPage() {
               onClick={() => setGameType(g.key)}
               className={`p-4 rounded-xl border-2 text-center transition-all ${
                 gameType === g.key
-                  ? "border-primary-500 bg-primary-50 ring-2 ring-primary-200"
-                  : "border-gray-200 hover:border-gray-300"
+                  ? "border-primary-500 bg-primary-50 dark:bg-primary-900/30 ring-2 ring-primary-200"
+                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
               }`}
             >
               <span className="text-3xl block mb-1">{g.icon}</span>
-              <p className="font-bold text-gray-900 text-sm">{g.name}</p>
+              <p className="font-bold text-gray-900 dark:text-white text-sm">{g.name}</p>
               <p className="text-xs text-gray-500 mt-1">{g.desc}</p>
             </button>
           ))}
         </div>
 
         <div className="mb-6">
-          <label htmlFor="examType" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="examType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Tipo de examen
           </label>
           <select
@@ -1539,7 +1539,7 @@ export default function GamesPage() {
           }
         />
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-400 text-sm">
             {error}
           </div>
         )}
@@ -1577,7 +1577,7 @@ export default function GamesPage() {
                       {g.gameType === "trivia" ? "🎯" : "✅"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">
+                      <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                         {g.title}
                       </h3>
                       <div className="flex items-center gap-2 text-xs text-gray-400">

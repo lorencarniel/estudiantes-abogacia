@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { schedulePrompt, scheduleSchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
+import { safeJsonParse } from "@/lib/utils";
 
 const subjectSchema = z.object({
   name: z.string().min(1),
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
       max_tokens: 8000,
     });
 
-    const content = JSON.parse(response.choices[0].message.content || "{}");
+    const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as any);
 
     const saved = await prisma.studySchedule.create({
       data: {

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { flashcardsPrompt, flashcardsSchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
+import { safeJsonParse } from "@/lib/utils";
 
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
       max_tokens: 4000,
     });
 
-    const content = JSON.parse(response.choices[0].message.content || "{}");
+    const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as any);
 
     const deck = await prisma.flashcardDeck.create({
       data: {

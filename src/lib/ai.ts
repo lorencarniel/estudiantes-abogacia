@@ -1,5 +1,9 @@
 import OpenAI from "openai";
 
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY no está configurada en las variables de entorno");
+}
+
 const globalForOpenAI = globalThis as unknown as { openai: OpenAI };
 
 export const openai =

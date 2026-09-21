@@ -227,9 +227,9 @@ function ContentPreview({ item }: { item: HistoryItem }) {
             <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Conceptos clave</h3>
             <div className="space-y-2">
               {d.key_concepts.map((c, i) => (
-                <div key={i} className="bg-blue-50 rounded-lg p-3">
-                  <p className="font-semibold text-blue-900 text-sm">{c.term}</p>
-                  <p className="text-blue-700 text-sm">{c.definition}</p>
+                <div key={i} className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3">
+                  <p className="font-semibold text-blue-900 dark:text-blue-200 text-sm">{c.term}</p>
+                  <p className="text-blue-700 dark:text-blue-300 text-sm">{c.definition}</p>
                 </div>
               ))}
             </div>
@@ -303,6 +303,7 @@ function ContentPreview({ item }: { item: HistoryItem }) {
           <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
             Dificultad: {d.difficulty}
           </span>
+
           {d.completed && (
             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
               d.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
@@ -322,10 +323,10 @@ function ContentPreview({ item }: { item: HistoryItem }) {
                 </p>
                 <div className="space-y-1">
                   {q.options.map((opt, j) => {
-                    let optClass = "text-gray-600";
+                    let optClass = "text-gray-600 dark:text-gray-400";
                     if (d.completed) {
-                      if (j === q.correct_index) optClass = "text-green-700 font-semibold";
-                      else if (j === userAnswer && !isCorrect) optClass = "text-red-500 line-through";
+                      if (j === q.correct_index) optClass = "text-green-700 dark:text-green-400 font-semibold";
+                      else if (j === userAnswer && !isCorrect) optClass = "text-red-500 dark:text-red-400 line-through";
                     }
                     return (
                       <p key={j} className={`text-sm ${optClass}`}>
@@ -412,10 +413,10 @@ function ContentPreview({ item }: { item: HistoryItem }) {
     return (
       <div className="space-y-4">
         <div className="flex gap-3 text-sm">
-          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">
+          <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-semibold">
             ~{mins > 0 ? `${mins}min ${secs}s` : `${secs}s`}
           </span>
-          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">
+          <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-semibold">
             Voz: {d.voice || "nova"}
           </span>
         </div>
@@ -436,7 +437,7 @@ function ContentPreview({ item }: { item: HistoryItem }) {
     return (
       <div className="space-y-4">
         <div className="flex gap-3 text-sm">
-          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">
+          <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-semibold">
             {
               {trivia:"🎯 Trivia", true_false:"✅ V/F", matching:"🔗 Relacionar", ordering:"📋 Ordenar", fill_blank:"✏️ Completar",
                hangman:"💀 Ahorcado", memory:"🧠 Memotest", categorize:"📂 Categorizar", article_fill:"📜 Artículos",
@@ -474,13 +475,13 @@ function ContentPreview({ item }: { item: HistoryItem }) {
     return (
       <div className="space-y-4">
         <div className="flex gap-3 text-sm">
-          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">
+          <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-semibold">
             {d.slideCount || 0} slides
           </span>
-          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">
+          <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-semibold">
             ~{mins > 0 ? `${mins}min ${secs}s` : `${secs}s`}
           </span>
-          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">
+          <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-semibold">
             Voz: {d.voice || "nova"}
           </span>
         </div>
