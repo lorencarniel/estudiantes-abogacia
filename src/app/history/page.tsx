@@ -28,6 +28,7 @@ const TYPE_META: Record<string, { icon: string; label: string; color: string }> 
   oral_exam: { icon: "🎤", label: "Examen oral", color: "bg-red-100 text-red-700" },
   mnemonic: { icon: "🧠", label: "Mnemotécnico", color: "bg-lime-100 text-lime-700" },
   glossary: { icon: "📚", label: "Glosario", color: "bg-emerald-100 text-emerald-700" },
+  highlight: { icon: "🖍️", label: "Resaltador", color: "bg-yellow-100 text-yellow-700" },
 };
 
 const FILTERS = [

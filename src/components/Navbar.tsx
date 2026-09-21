@@ -148,8 +148,14 @@ export default function Navbar() {
               </Link>
             ))}
             <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 py-2 px-3 text-gray-700 dark:text-gray-300 font-medium w-full text-left min-h-[44px]"
+            >
+              {theme === "dark" ? "☀️ Modo claro" : "🌙 Modo oscuro"}
+            </button>
+            <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="block py-2 px-3 text-red-600 font-medium w-full text-left"
+              className="block py-2 px-3 text-red-600 font-medium w-full text-left min-h-[44px]"
             >
               Salir
             </button>

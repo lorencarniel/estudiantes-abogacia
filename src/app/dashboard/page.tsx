@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import XPBar from "@/components/XPBar";
+import WeakAreas from "@/components/WeakAreas";
+import OnboardingModal from "@/components/OnboardingModal";
 
 const tools = [
   {
@@ -127,6 +129,13 @@ const tools = [
     href: "/tools/glossary",
     available: true,
   },
+  {
+    icon: "🖍️",
+    title: "Resaltador",
+    description: "Identificá automáticamente frases y conceptos clave.",
+    href: "/tools/highlighter",
+    available: true,
+  },
 ];
 
 const TYPE_ICONS: Record<string, string> = {
@@ -144,6 +153,7 @@ const TYPE_ICONS: Record<string, string> = {
   oral_exam: "🎤",
   mnemonic: "🧠",
   glossary: "📚",
+  highlight: "🖍️",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -161,6 +171,7 @@ const TYPE_LABELS: Record<string, string> = {
   oral_exam: "Examen oral",
   mnemonic: "Mnemotécnico",
   glossary: "Glosario",
+  highlight: "Resaltador",
 };
 
 interface RecentItem {
@@ -195,6 +206,7 @@ export default function DashboardPage() {
   const [recent, setRecent] = useState<RecentItem[]>([]);
   const [stats, setStats] = useState<QuickStats | null>(null);
   const [showPomodoro, setShowPomodoro] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
@@ -202,6 +214,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
+      fetch("/api/profile")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.profile && !data.profile.onboardingDone) setShowOnboarding(true);
+          if (!data.profile) setShowOnboarding(true);
+        })
+        .catch(() => {});
       fetch("/api/history")
         .then((r) => r.json())
         .then((data) => {
@@ -239,6 +258,12 @@ export default function DashboardPage() {
       </div>
 
       <XPBar />
+
+      <WeakAreas />
+
+      {showOnboarding && (
+        <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+      )}
 
       {showPomodoro && (
         <div className="mb-6 max-w-sm mx-auto">

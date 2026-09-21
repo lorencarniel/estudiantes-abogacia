@@ -28,6 +28,7 @@ export default function StatsPage() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [topics, setTopics] = useState<{ title: string; overallScore: number; totalAttempts: number }[]>([]);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
@@ -42,6 +43,12 @@ export default function StatsPage() {
         })
         .catch(() => {})
         .finally(() => setLoading(false));
+      fetch("/api/stats/topics")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.topics) setTopics(data.topics);
+        })
+        .catch(() => {});
     }
   }, [status]);
 
@@ -292,6 +299,49 @@ export default function StatsPage() {
             tarjetas en{" "}
             <span className="font-bold">{stats.flashcards.decks}</span> mazos
           </p>
+        </div>
+      )}
+
+      {topics.length > 0 && (
+        <div className="card mt-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+            Rendimiento por tema
+          </h2>
+          <div className="space-y-3">
+            {topics.map((topic) => {
+              const color =
+                topic.overallScore < 40
+                  ? "bg-red-500"
+                  : topic.overallScore < 60
+                  ? "bg-amber-500"
+                  : topic.overallScore < 80
+                  ? "bg-yellow-500"
+                  : "bg-green-500";
+              return (
+                <div key={topic.title}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">
+                      {topic.title}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <span className="text-xs text-gray-400">
+                        {topic.totalAttempts} intento{topic.totalAttempts !== 1 ? "s" : ""}
+                      </span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">
+                        {topic.overallScore}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className={`${color} h-2 rounded-full transition-all`}
+                      style={{ width: `${topic.overallScore}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -9,6 +9,7 @@ const profileSchema = z.object({
   university: z.string().max(200).optional(),
   careerYear: z.number().int().min(1).max(6).nullable().optional(),
   subjects: z.array(z.string().max(100)).max(20).optional(),
+  onboardingDone: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -55,11 +56,14 @@ export async function PUT(request: Request) {
     );
   }
 
-  const data = {
+  const data: Record<string, unknown> = {
     university: parsed.data.university,
     careerYear: parsed.data.careerYear,
     subjects: parsed.data.subjects ? JSON.stringify(parsed.data.subjects) : undefined,
   };
+  if (parsed.data.onboardingDone !== undefined) {
+    data.onboardingDone = parsed.data.onboardingDone;
+  }
 
   const profile = await prisma.profile.upsert({
     where: { userId: session.user.id },

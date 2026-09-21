@@ -1283,3 +1283,47 @@ export const glossarySchema: Record<string, unknown> = {
     },
   },
 };
+
+export function highlightPrompt(text: string): string {
+  return (
+    BASE_RULES +
+    "\n\nAnalizá el siguiente material jurídico y identificá las frases o fragmentos más importantes para estudiar. " +
+    "Categorizá cada highlight en una de estas categorías: definicion, articulo, principio, jurisprudencia, concepto_clave, ejemplo. " +
+    "Devolvé los highlights en orden de aparición en el texto. " +
+    "Cada highlight debe ser una cita EXACTA del texto original (no parafrasear). " +
+    "Identificá entre 10 y 25 highlights según la extensión del material." +
+    `\n\n<apunte>\n${text}\n</apunte>`
+  );
+}
+
+export const highlightSchema: Record<string, unknown> = {
+  name: "highlights",
+  strict: true,
+  schema: {
+    type: "object" as const,
+    additionalProperties: false,
+    required: ["highlights"],
+    properties: {
+      highlights: {
+        type: "array" as const,
+        items: {
+          type: "object" as const,
+          additionalProperties: false,
+          required: ["text", "category", "importance", "note"],
+          properties: {
+            text: { type: "string" as const },
+            category: {
+              type: "string" as const,
+              enum: ["definicion", "articulo", "principio", "jurisprudencia", "concepto_clave", "ejemplo"],
+            },
+            importance: {
+              type: "string" as const,
+              enum: ["alta", "media"],
+            },
+            note: { type: "string" as const },
+          },
+        },
+      },
+    },
+  },
+};
