@@ -183,7 +183,7 @@ export default function FlashcardsPage() {
               <p className="text-xs font-semibold text-primary-600 mb-3 uppercase tracking-wide">
                 Frente
               </p>
-              <p className="text-lg font-medium text-gray-900 px-4">
+              <p className="text-lg font-medium text-gray-900 dark:text-white px-4">
                 {card.front}
               </p>
               <p className="text-sm text-gray-400 mt-6">
@@ -195,7 +195,7 @@ export default function FlashcardsPage() {
               <p className="text-xs font-semibold text-green-600 mb-3 uppercase tracking-wide">
                 Dorso
               </p>
-              <p className="text-lg text-gray-800 px-4">{card.back}</p>
+              <p className="text-lg text-gray-800 dark:text-gray-200 px-4">{card.back}</p>
             </>
           )}
         </div>
@@ -229,10 +229,10 @@ export default function FlashcardsPage() {
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="card text-center py-12">
           <p className="text-5xl mb-4">{pct >= 70 ? "🎉" : "💪"}</p>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             ¡Sesión completada!
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Respondiste {studyStats.good} de {studyStats.total} tarjetas correctamente ({pct}%)
           </p>
           <div className="flex justify-center gap-3">
@@ -244,7 +244,7 @@ export default function FlashcardsPage() {
             </button>
             <button
               onClick={() => { setStudyDeck(null); setStudyComplete(false); fetchDecks(); }}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Volver a mis mazos
             </button>
@@ -282,7 +282,7 @@ export default function FlashcardsPage() {
 
       {!autoLoading && !(autoText && loading) && (
       <div className="card mb-8">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
           Generar nuevo mazo
         </h2>
         <MaterialInput
@@ -319,7 +319,7 @@ export default function FlashcardsPage() {
               return (
                 <div key={deck.id} className="card hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-bold text-gray-900 flex-1 mr-2">
+                    <h3 className="font-bold text-gray-900 dark:text-white flex-1 mr-2">
                       {deck.title}
                     </h3>
                     <button

@@ -26,31 +26,37 @@ export async function POST(
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const schedule = await prisma.studySchedule.findFirst({
-    where: { id: params.id, userId: session.user.id },
+  const result = await prisma.$transaction(async (tx) => {
+    const schedule = await tx.studySchedule.findFirst({
+      where: { id: params.id, userId: session.user.id },
+    });
+
+    if (!schedule) return null;
+
+    const completedDays: string[] = safeJsonParse(schedule.completedDays, []);
+
+    if (parsed.data.completed) {
+      if (!completedDays.includes(parsed.data.date)) {
+        completedDays.push(parsed.data.date);
+      }
+    } else {
+      const idx = completedDays.indexOf(parsed.data.date);
+      if (idx >= 0) completedDays.splice(idx, 1);
+    }
+
+    await tx.studySchedule.update({
+      where: { id: params.id },
+      data: { completedDays: JSON.stringify(completedDays) },
+    });
+
+    return completedDays;
   });
 
-  if (!schedule) {
+  if (!result) {
     return NextResponse.json({ error: "Cronograma no encontrado" }, { status: 404 });
   }
 
-  const completedDays: string[] = safeJsonParse(schedule.completedDays, []);
-
-  if (parsed.data.completed) {
-    if (!completedDays.includes(parsed.data.date)) {
-      completedDays.push(parsed.data.date);
-    }
-  } else {
-    const idx = completedDays.indexOf(parsed.data.date);
-    if (idx >= 0) completedDays.splice(idx, 1);
-  }
-
-  await prisma.studySchedule.update({
-    where: { id: params.id },
-    data: { completedDays: JSON.stringify(completedDays) },
-  });
-
-  return NextResponse.json({ completedDays });
+  return NextResponse.json({ completedDays: result });
   } catch (error) {
     console.error("Error al actualizar progreso del cronograma:", error);
     return NextResponse.json({ error: "Error al actualizar progreso del cronograma" }, { status: 500 });

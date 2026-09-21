@@ -303,7 +303,7 @@ export default function DashboardPage() {
                 Usar herramienta
               </Link>
             ) : (
-              <span className="inline-block text-sm text-gray-400 font-medium bg-gray-100 px-3 py-1.5 rounded-lg">
+              <span className="inline-block text-sm text-gray-400 dark:text-gray-500 font-medium bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg">
                 Próximamente
               </span>
             )}

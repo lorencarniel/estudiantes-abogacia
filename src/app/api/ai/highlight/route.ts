@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       },
     });
 
-    await addXP(session.user.id, "summary");
+    await addXP(session.user.id, "highlight");
 
     return NextResponse.json(result);
   } catch (error) {

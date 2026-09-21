@@ -30,7 +30,7 @@ import {
   timelineGameSchema,
   ExamType,
 } from "@/lib/prompts";
-import { addXP } from "@/lib/xp";
+
 
 const VALID_GAME_TYPES = [
   "trivia", "true_false", "matching", "ordering", "fill_blank",
@@ -177,8 +177,6 @@ export async function POST(request: Request) {
         total,
       },
     });
-
-    addXP(session.user.id, "game_complete").catch(() => {});
 
     return NextResponse.json({
       id: gameSession.id,

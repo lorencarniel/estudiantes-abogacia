@@ -45,8 +45,8 @@ export default function Navbar() {
                     href={link.href}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive(link.href)
-                        ? "bg-primary-50 text-primary-700"
-                        : "text-gray-600 hover:text-primary-700 hover:bg-gray-50"
+                        ? "bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
+                        : "text-gray-600 dark:text-gray-300 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                   >
                     {link.label}

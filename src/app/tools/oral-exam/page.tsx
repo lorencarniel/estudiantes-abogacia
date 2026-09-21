@@ -308,7 +308,7 @@ export default function OralExamPage() {
             <p className="text-sm text-gray-700 dark:text-gray-300 italic">{questions[currentIndex].question}</p>
           </div>
 
-          <div className="card text-center bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-200">
+          <div className="card text-center bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-primary-200 dark:border-primary-800">
             <p className={`text-4xl font-bold ${getScoreColor(currentEvaluation.score)}`}>
               {currentEvaluation.score}/10
             </p>
@@ -340,13 +340,13 @@ export default function OralExamPage() {
             </div>
           )}
 
-          <div className="card bg-primary-50 border-primary-200">
-            <p className="text-xs font-semibold text-primary-700 uppercase mb-2">Respuesta modelo</p>
+          <div className="card bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
+            <p className="text-xs font-semibold text-primary-700 dark:text-primary-400 uppercase mb-2">Respuesta modelo</p>
             <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{currentEvaluation.model_answer}</p>
           </div>
 
-          <div className="card bg-amber-50 border-amber-200">
-            <p className="text-xs font-semibold text-amber-700 uppercase mb-2">Consejo</p>
+          <div className="card bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase mb-2">Consejo</p>
             <p className="text-sm text-gray-800 dark:text-gray-200">{currentEvaluation.tip}</p>
           </div>
 
@@ -367,7 +367,7 @@ export default function OralExamPage() {
             </button>
           </div>
 
-          <div className="card text-center bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-200">
+          <div className="card text-center bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-primary-200 dark:border-primary-800">
             <p className={`text-5xl font-bold ${getScoreColor(avgScore)}`}>
               {avgScore}/10
             </p>
@@ -406,8 +406,8 @@ export default function OralExamPage() {
                     <p className="text-xs font-semibold text-primary-600 uppercase mb-1">Respuesta modelo</p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{r.evaluation.model_answer}</p>
                   </div>
-                  <div className="bg-amber-50 rounded-lg p-2">
-                    <p className="text-xs font-semibold text-amber-600 uppercase mb-1">Consejo</p>
+                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
+                    <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase mb-1">Consejo</p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{r.evaluation.tip}</p>
                   </div>
                 </div>

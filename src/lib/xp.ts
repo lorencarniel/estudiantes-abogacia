@@ -17,6 +17,7 @@ export const XP_ACTIONS: Record<string, number> = {
   glossary: 20,
   concept_map: 30,
   comparison: 25,
+  highlight: 25,
 };
 
 const LEVELS = [
@@ -64,15 +65,15 @@ export async function addXP(userId: string, action: string): Promise<void> {
   if (!amount) return;
 
   const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = now.toLocaleDateString("en-CA", { timeZone: "America/Buenos_Aires" });
 
   const existing = await prisma.userXP.findUnique({ where: { userId } });
 
   if (existing) {
-    const lastStr = existing.lastActivityDate.toISOString().slice(0, 10);
+    const lastStr = existing.lastActivityDate.toLocaleDateString("en-CA", { timeZone: "America/Buenos_Aires" });
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    const yesterdayStr = yesterday.toLocaleDateString("en-CA", { timeZone: "America/Buenos_Aires" });
 
     let newStreak = existing.streak;
     if (lastStr !== todayStr) {
