@@ -11,3 +11,4 @@
 | 007 | Features premium (dark mode, pomodoro, mnemotécnicos, glosario, exportar PDF, sistema XP) | COMPLETADA | 2026-09-19 |
 | 008 | Auditoría integral (seguridad API, dark mode completo, robustez) | COMPLETADA | 2026-09-20 |
 | 009 | Mejoras avanzadas (stats por tema, áreas débiles, resaltador, onboarding, responsive) | COMPLETADA | 2026-09-20 |
+| 010 | Cuadernos por materia con chat integrado | COMPLETADA | 2026-09-21 |
