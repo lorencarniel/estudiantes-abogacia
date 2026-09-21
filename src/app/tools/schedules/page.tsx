@@ -80,9 +80,42 @@ export default function SchedulesPage() {
   const [loadingSchedules, setLoadingSchedules] = useState(true);
   const [viewSchedule, setViewSchedule] = useState<Schedule | null>(null);
 
+  const [notebooks, setNotebooks] = useState<{ id: string; name: string; materialCount: number }[]>([]);
+  const [loadingNotebook, setLoadingNotebook] = useState(false);
+
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
   }, [status, router]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetch("/api/notebooks")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.notebooks) {
+            setNotebooks(data.notebooks.filter((n: { materialCount: number }) => n.materialCount > 0));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [status]);
+
+  async function loadFromNotebook(notebookId: string) {
+    setLoadingNotebook(true);
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}`);
+      const data = await res.json();
+      if (data.notebook?.materials) {
+        setSubjects(
+          data.notebook.materials.map((m: { title: string }) => ({
+            name: m.title,
+            mastery: 3,
+          }))
+        );
+      }
+    } catch {}
+    setLoadingNotebook(false);
+  }
 
   const fetchSchedules = useCallback(async () => {
     try {
@@ -341,8 +374,37 @@ export default function SchedulesPage() {
         <h2 className="text-lg font-bold text-gray-900 mb-4">Crear cronograma</h2>
 
         <form onSubmit={handleGenerate} className="space-y-6">
+          {notebooks.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Cargar temas desde un cuaderno
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {notebooks.map((nb) => (
+                  <button
+                    key={nb.id}
+                    type="button"
+                    onClick={() => loadFromNotebook(nb.id)}
+                    disabled={loading || loadingNotebook}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
+                  >
+                    <span>📓</span>
+                    {nb.name}
+                    <span className="text-xs text-gray-400">({nb.materialCount})</span>
+                  </button>
+                ))}
+              </div>
+              {loadingNotebook && (
+                <p className="text-xs text-primary-600 mt-1 animate-pulse">Cargando temas...</p>
+              )}
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                Seleccioná un cuaderno para cargar sus apuntes como temas, o agregá temas manualmente abajo.
+              </p>
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Temas del programa
             </label>
             <div className="space-y-3">
