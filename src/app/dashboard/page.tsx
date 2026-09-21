@@ -88,6 +88,13 @@ const tools = [
     available: true,
   },
   {
+    icon: "📓",
+    title: "Cuadernos",
+    description: "Organizá tus apuntes por materia y chateá con todo el cuaderno.",
+    href: "/tools/notebooks",
+    available: true,
+  },
+  {
     icon: "⚖️",
     title: "Comparador",
     description: "Compará conceptos similares que se prestan a confusión.",

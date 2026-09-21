@@ -63,6 +63,14 @@ export async function POST(request: Request) {
     );
   }
 
+  const notebookId = body.notebookId;
+  if (notebookId) {
+    const nb = await prisma.notebook.findFirst({ where: { id: notebookId, userId: session.user.id } });
+    if (!nb) {
+      return NextResponse.json({ error: "Cuaderno no encontrado" }, { status: 404 });
+    }
+  }
+
   const material = await prisma.material.create({
     data: {
       userId: session.user.id,
@@ -70,6 +78,7 @@ export async function POST(request: Request) {
       content: content.trim(),
       fileName: fileName || null,
       charCount: content.trim().length,
+      notebookId: notebookId || null,
     },
   });
 
@@ -83,6 +92,44 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error al guardar apunte:", error);
     return NextResponse.json({ error: "Error al guardar apunte" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  try {
+    const { id, notebookId } = await request.json();
+    if (!id) {
+      return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+    }
+
+    const material = await prisma.material.findFirst({
+      where: { id, userId: session.user.id },
+    });
+    if (!material) {
+      return NextResponse.json({ error: "Apunte no encontrado" }, { status: 404 });
+    }
+
+    if (notebookId) {
+      const nb = await prisma.notebook.findFirst({ where: { id: notebookId, userId: session.user.id } });
+      if (!nb) {
+        return NextResponse.json({ error: "Cuaderno no encontrado" }, { status: 404 });
+      }
+    }
+
+    await prisma.material.update({
+      where: { id },
+      data: { notebookId: notebookId || null },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Error al asignar apunte:", error);
+    return NextResponse.json({ error: "Error al asignar apunte" }, { status: 500 });
   }
 }
 

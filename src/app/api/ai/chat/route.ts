@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, MAX_INPUT_LENGTH } from "@/lib/ai";
+import { prisma } from "@/lib/prisma";
 
 const CHAT_SYSTEM_PROMPT =
   "Sos un profesor de Derecho argentino experto. " +
@@ -23,13 +24,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { text, messages } = await request.json();
+  const { text, messages, notebookId } = await request.json();
 
-  if (!text || text.length < 80) {
+  let sourceText = text || "";
+
+  if (notebookId && typeof notebookId === "string") {
+    const notebook = await prisma.notebook.findFirst({
+      where: { id: notebookId, userId: session.user.id },
+      include: {
+        materials: {
+          select: { title: true, content: true },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+    if (!notebook || notebook.materials.length === 0) {
+      return NextResponse.json({ error: "Cuaderno vacío o no encontrado" }, { status: 400 });
+    }
+    sourceText = notebook.materials
+      .map((m) => `--- ${m.title} ---\n${m.content}`)
+      .join("\n\n");
+  }
+
+  if (!sourceText || sourceText.length < 80) {
     return NextResponse.json({ error: "El texto debe tener al menos 80 caracteres" }, { status: 400 });
   }
-  if (text.length > MAX_INPUT_LENGTH) {
-    return NextResponse.json({ error: "El texto supera el límite de caracteres" }, { status: 400 });
+  if (sourceText.length > MAX_INPUT_LENGTH * 5) {
+    return NextResponse.json({ error: "El contenido del cuaderno supera el límite" }, { status: 400 });
   }
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: "Enviá al menos un mensaje" }, { status: 400 });
@@ -44,7 +65,7 @@ export async function POST(request: Request) {
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
-        { role: "system", content: CHAT_SYSTEM_PROMPT + `\n\n<apunte>\n${text}\n</apunte>` },
+        { role: "system", content: CHAT_SYSTEM_PROMPT + `\n\n<apunte>\n${sourceText}\n</apunte>` },
         ...chatMessages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
       ],
       temperature: 0.4,
