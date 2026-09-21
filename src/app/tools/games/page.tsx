@@ -43,7 +43,7 @@ interface AnswerRecord {
 }
 
 const TRIVIA_TIME = 15;
-const TRUE_FALSE_TIME = 10;
+const TRUE_FALSE_TIME = 15;
 const BASE_POINTS = 100;
 const MAX_TIME_BONUS = 50;
 
@@ -987,6 +987,7 @@ export default function GamesPage() {
   const [game, setGame] = useState<GameData | null>(null);
   const [games, setGames] = useState<GameRecord[]>([]);
   const [loadingGames, setLoadingGames] = useState(true);
+  const [lastText, setLastText] = useState("");
 
   const [currentQ, setCurrentQ] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -1115,6 +1116,7 @@ export default function GamesPage() {
   async function handleGenerate(text: string, syllabusId?: string) {
     setGameState("loading");
     setError("");
+    setLastText(text);
     try {
       const res = await fetch("/api/ai/game", {
         method: "POST",
@@ -1158,6 +1160,24 @@ export default function GamesPage() {
     setAnswers([]);
     setSelectedAnswer(null);
     setShowFeedback(false);
+  }
+
+  function replayGame() {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+    setGame(null);
+    setCurrentQ(0);
+    setScore(0);
+    setStreak(0);
+    setMaxStreak(0);
+    setAnswers([]);
+    setSelectedAnswer(null);
+    setShowFeedback(false);
+    if (lastText) {
+      handleGenerate(lastText);
+    } else {
+      setGameState("setup");
+    }
   }
 
   async function handleDelete(id: string) {
@@ -1376,15 +1396,12 @@ export default function GamesPage() {
           )}
 
           <div className="flex justify-center gap-3">
-            <button onClick={resetGame} className="btn-primary py-2 px-6">
+            <button onClick={replayGame} className="btn-primary py-2 px-6">
               Jugar de nuevo
             </button>
-            <Link
-              href="/dashboard"
-              className="py-2 px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium"
-            >
-              Dashboard
-            </Link>
+            <button onClick={resetGame} className="btn-secondary py-2 px-6">
+              Cambiar material
+            </button>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -39,6 +39,42 @@ export default function OralExamPage() {
   const [currentEvaluation, setCurrentEvaluation] = useState<AnswerEvaluation | null>(null);
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [error, setError] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      setSpeechSupported(true);
+      const recognition = new SR();
+      recognition.lang = "es-AR";
+      recognition.interimResults = true;
+      recognition.continuous = true;
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let transcript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setAnswer(transcript);
+      };
+      recognition.onerror = () => setIsRecording(false);
+      recognition.onend = () => setIsRecording(false);
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  function toggleRecording() {
+    if (!recognitionRef.current) return;
+    if (isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    } else {
+      setAnswer("");
+      recognitionRef.current.start();
+      setIsRecording(true);
+    }
+  }
 
   if (status === "unauthenticated") {
     router.push("/auth/login");
@@ -198,10 +234,33 @@ export default function OralExamPage() {
           </div>
 
           <div className="card">
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-2">Tu respuesta</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Tu respuesta</p>
+              {speechSupported && (
+                <button
+                  type="button"
+                  onClick={toggleRecording}
+                  disabled={state === "evaluating"}
+                  className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors ${
+                    isRecording
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 animate-pulse"
+                      : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  {isRecording ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      Grabando... (click para parar)
+                    </>
+                  ) : (
+                    <>🎙️ Hablar</>
+                  )}
+                </button>
+              )}
+            </div>
             <textarea
               className="input-field min-h-[150px] resize-y"
-              placeholder="Escribí tu respuesta como si estuvieras frente al tribunal..."
+              placeholder={speechSupported ? "Escribí o usá el micrófono para responder..." : "Escribí tu respuesta como si estuvieras frente al tribunal..."}
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
               disabled={state === "evaluating"}
@@ -209,7 +268,13 @@ export default function OralExamPage() {
             />
             <div className="mt-3">
               <button
-                onClick={handleSubmitAnswer}
+                onClick={() => {
+                  if (isRecording && recognitionRef.current) {
+                    recognitionRef.current.stop();
+                    setIsRecording(false);
+                  }
+                  handleSubmitAnswer();
+                }}
                 disabled={answer.trim().length < 20 || state === "evaluating"}
                 className="btn-primary"
               >
