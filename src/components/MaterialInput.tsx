@@ -15,6 +15,13 @@ interface SavedMaterial {
   createdAt: string;
 }
 
+interface NotebookOption {
+  id: string;
+  name: string;
+  color: string;
+  materialCount: number;
+}
+
 interface MaterialInputProps {
   onSubmit: (text: string, syllabusId?: string) => void;
   loading: boolean;
@@ -31,7 +38,7 @@ export default function MaterialInput({
   showSyllabus = true,
 }: MaterialInputProps) {
   const [text, setText] = useState("");
-  const [mode, setMode] = useState<"text" | "file" | "saved">("text");
+  const [mode, setMode] = useState<"text" | "file" | "saved" | "notebook">("text");
   const [fileName, setFileName] = useState("");
   const [fileCharCount, setFileCharCount] = useState(0);
   const [fileReady, setFileReady] = useState(false);
@@ -52,6 +59,10 @@ export default function MaterialInput({
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState("");
 
+  const [notebooks, setNotebooks] = useState<NotebookOption[]>([]);
+  const [loadingNotebook, setLoadingNotebook] = useState(false);
+  const [selectedNotebook, setSelectedNotebook] = useState<string | null>(null);
+
   useEffect(() => {
     if (showSyllabus) {
       fetch("/api/syllabus")
@@ -61,7 +72,37 @@ export default function MaterialInput({
         })
         .catch(() => {});
     }
+    fetch("/api/notebooks")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.notebooks) {
+          setNotebooks(data.notebooks.filter((n: NotebookOption) => n.materialCount > 0));
+        }
+      })
+      .catch(() => {});
   }, [showSyllabus]);
+
+  async function loadNotebook(id: string) {
+    setLoadingNotebook(true);
+    setSelectedNotebook(id);
+    try {
+      const res = await fetch(`/api/notebooks/${id}`);
+      const data = await res.json();
+      if (data.notebook && data.notebook.materials.length > 0) {
+        const combined = data.notebook.materials
+          .map((m: { title: string; content: string }) => `--- ${m.title} ---\n${m.content}`)
+          .join("\n\n");
+        setText(combined);
+        setFileName(`📓 ${data.notebook.name}`);
+        setFileCharCount(combined.length);
+        setFileReady(true);
+      }
+    } catch {
+      setUploadError("Error al cargar el cuaderno");
+    } finally {
+      setLoadingNotebook(false);
+    }
+  }
 
   function fetchMaterials() {
     setLoadingMaterials(true);
@@ -151,6 +192,7 @@ export default function MaterialInput({
     setText("");
     setUploadError("");
     setSelectedMaterial(null);
+    setSelectedNotebook(null);
     setSaveSuccess("");
   }
 
@@ -184,12 +226,13 @@ export default function MaterialInput({
 
   const charCount = text.trim().length;
   const isValid = charCount >= 80;
-  const busy = loading || uploading || loadingContent;
+  const busy = loading || uploading || loadingContent || loadingNotebook;
 
-  const tabs = [
-    { key: "text" as const, label: "Pegar texto" },
-    { key: "file" as const, label: "Subir archivo" },
-    { key: "saved" as const, label: "Mis apuntes" },
+  const tabs: { key: "text" | "file" | "saved" | "notebook"; label: string }[] = [
+    { key: "text", label: "Pegar texto" },
+    { key: "file", label: "Subir archivo" },
+    { key: "saved", label: "Mis apuntes" },
+    ...(notebooks.length > 0 ? [{ key: "notebook" as const, label: "📓 Cuadernos" }] : []),
   ];
 
   return (
@@ -282,6 +325,48 @@ export default function MaterialInput({
                     <span>{m.charCount.toLocaleString()} chars</span>
                     <span>{new Date(m.createdAt).toLocaleDateString("es-AR")}</span>
                   </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {mode === "notebook" && (
+        <div className="space-y-3">
+          {selectedNotebook && fileReady ? (
+            <div className="border-2 border-green-300 bg-green-50 dark:bg-green-900/30 dark:border-green-700 rounded-lg p-6 text-center">
+              <p className="text-4xl mb-3">📓</p>
+              <p className="text-green-800 dark:text-green-300 font-semibold mb-1">{fileName}</p>
+              <p className="text-green-600 dark:text-green-400 text-sm">
+                Cuaderno cargado ({fileCharCount.toLocaleString()} caracteres)
+              </p>
+              <button
+                type="button"
+                onClick={handleRemoveFile}
+                className="mt-3 text-xs text-red-500 hover:text-red-700 font-medium"
+              >
+                Cambiar cuaderno
+              </button>
+            </div>
+          ) : loadingNotebook ? (
+            <div className="flex justify-center py-6">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {notebooks.map((nb) => (
+                <button
+                  key={nb.id}
+                  type="button"
+                  onClick={() => loadNotebook(nb.id)}
+                  className="text-left p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-primary-400 dark:hover:border-primary-500 transition-colors"
+                  style={{ borderLeftColor: nb.color, borderLeftWidth: 4 }}
+                >
+                  <p className="font-bold text-gray-900 dark:text-white">{nb.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {nb.materialCount} apunte{nb.materialCount !== 1 ? "s" : ""}
+                  </p>
                 </button>
               ))}
             </div>
