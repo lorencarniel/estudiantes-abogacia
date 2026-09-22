@@ -307,7 +307,7 @@ export default function HighlighterPage() {
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => {
                 setHighlights([]);
@@ -317,6 +317,24 @@ export default function HighlighterPage() {
               className="btn-secondary text-sm py-2 px-4"
             >
               Analizar otro texto
+            </button>
+            <button
+              onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/summaries"); }}
+              className="text-sm px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 font-medium transition-colors"
+            >
+              📄 Resumen
+            </button>
+            <button
+              onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/flashcards"); }}
+              className="text-sm px-4 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 font-medium transition-colors"
+            >
+              🃏 Flashcards
+            </button>
+            <button
+              onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/quizzes"); }}
+              className="text-sm px-4 py-2 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50 font-medium transition-colors"
+            >
+              ✅ Quiz
             </button>
           </div>
         </div>

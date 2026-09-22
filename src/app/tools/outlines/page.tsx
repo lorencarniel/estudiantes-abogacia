@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import MaterialInput from "@/components/MaterialInput";
 import { useAutoLoadMaterial } from "@/hooks/useAutoLoadMaterial";
 
@@ -24,6 +24,7 @@ export default function OutlinesPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OutlineResult | null>(null);
   const [error, setError] = useState("");
+  const [sourceText, setSourceText] = useState("");
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const { text: autoText, loading: autoLoading, subjectName } = useAutoLoadMaterial();
   const autoTriggered = useRef(false);
@@ -39,17 +40,18 @@ export default function OutlinesPage() {
     }
   }, [autoText]);
 
-  async function handleGenerate(text: string, syllabusId?: string) {
+  const handleGenerate = useCallback(async (text: string, syllabusId?: string, options?: { simpleMode?: boolean }) => {
     setLoading(true);
     setError("");
     setResult(null);
+    setSourceText(text);
     setCollapsed(new Set());
 
     try {
       const res = await fetch("/api/ai/outline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, syllabusId }),
+        body: JSON.stringify({ text, syllabusId, simpleMode: options?.simpleMode }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -59,7 +61,7 @@ export default function OutlinesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   function toggleSection(index: number) {
     setCollapsed((prev) => {
@@ -110,6 +112,7 @@ export default function OutlinesPage() {
           onSubmit={handleGenerate}
           loading={loading}
           buttonLabel="Generar esquema"
+          showSimpleMode
         />
       </div>
       )}
@@ -122,7 +125,10 @@ export default function OutlinesPage() {
 
       {result && (
         <div className="card">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">{result.title}</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{result.title}</h2>
+            <button onClick={() => { setResult(null); setSourceText(""); }} className="text-sm text-primary-600 hover:text-primary-800 font-medium">Nuevo esquema</button>
+          </div>
 
           <div className="space-y-2">
             {result.sections.map((section, i) => (
@@ -169,6 +175,35 @@ export default function OutlinesPage() {
               </div>
             ))}
           </div>
+
+          {sourceText && (
+            <div className="border-t border-gray-100 dark:border-gray-700 pt-6 mt-6 flex flex-wrap gap-2">
+              <button
+                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/highlighter"); }}
+                className="text-sm px-4 py-2 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 font-medium transition-colors"
+              >
+                🖍️ Resaltar
+              </button>
+              <button
+                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/summaries"); }}
+                className="text-sm px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 font-medium transition-colors"
+              >
+                📄 Resumen
+              </button>
+              <button
+                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/flashcards"); }}
+                className="text-sm px-4 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 font-medium transition-colors"
+              >
+                🃏 Flashcards
+              </button>
+              <button
+                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/quizzes"); }}
+                className="text-sm px-4 py-2 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50 font-medium transition-colors"
+              >
+                ✅ Quiz
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
-import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
+import { openai, AI_MODEL, SYSTEM_PROMPT, SIMPLE_MODE_SUFFIX } from "@/lib/ai";
 import { summaryPrompt, summarySchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { addXP } from "@/lib/xp";
@@ -12,6 +12,7 @@ const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
   level: z.enum(["corto", "mediano", "detallado"]),
   syllabusId: z.string().optional(),
+  simpleMode: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Texto inválido (mínimo 80 caracteres)" }, { status: 400 });
   }
 
-  const { text, level, syllabusId } = parsed.data;
+  const { text, level, syllabusId, simpleMode } = parsed.data;
 
   let syllabusContent: string | undefined;
   if (syllabusId) {
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
       model: AI_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: summaryPrompt(text, level, syllabusContent) },
+        { role: "user", content: summaryPrompt(text, level, syllabusContent) + (simpleMode ? SIMPLE_MODE_SUFFIX : "") },
       ],
       response_format: {
         type: "json_schema",

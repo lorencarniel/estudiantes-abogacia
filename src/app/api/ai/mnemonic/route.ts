@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
-import { openai, AI_MODEL, SYSTEM_PROMPT, MAX_INPUT_LENGTH } from "@/lib/ai";
+import { openai, AI_MODEL, SYSTEM_PROMPT, MAX_INPUT_LENGTH, SIMPLE_MODE_SUFFIX } from "@/lib/ai";
 import { mnemonicPrompt, mnemonicSchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { addXP } from "@/lib/xp";
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { text } = body;
+  const { text, simpleMode } = body;
 
   if (!text || text.length < 80) {
     return NextResponse.json({ error: "El texto debe tener al menos 80 caracteres" }, { status: 400 });
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       model: AI_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: mnemonicPrompt(text) },
+        { role: "user", content: mnemonicPrompt(text) + (simpleMode ? SIMPLE_MODE_SUFFIX : "") },
       ],
       response_format: {
         type: "json_schema",

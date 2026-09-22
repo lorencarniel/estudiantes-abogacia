@@ -23,11 +23,12 @@ interface NotebookOption {
 }
 
 interface MaterialInputProps {
-  onSubmit: (text: string, syllabusId?: string) => void;
+  onSubmit: (text: string, syllabusId?: string, options?: { simpleMode?: boolean }) => void;
   loading: boolean;
   buttonLabel?: string;
   children?: React.ReactNode;
   showSyllabus?: boolean;
+  showSimpleMode?: boolean;
 }
 
 export default function MaterialInput({
@@ -36,6 +37,7 @@ export default function MaterialInput({
   buttonLabel = "Generar",
   children,
   showSyllabus = true,
+  showSimpleMode = false,
 }: MaterialInputProps) {
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"text" | "file" | "saved" | "notebook">("text");
@@ -62,6 +64,20 @@ export default function MaterialInput({
   const [notebooks, setNotebooks] = useState<NotebookOption[]>([]);
   const [loadingNotebook, setLoadingNotebook] = useState(false);
   const [selectedNotebook, setSelectedNotebook] = useState<string | null>(null);
+  const [simpleMode, setSimpleMode] = useState(false);
+
+  useEffect(() => {
+    try {
+      const cross = sessionStorage.getItem("crossToolText");
+      if (cross) {
+        sessionStorage.removeItem("crossToolText");
+        setText(cross);
+        setFileName("Material de otra herramienta");
+        setFileCharCount(cross.length);
+        setFileReady(true);
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     if (showSyllabus) {
@@ -142,7 +158,7 @@ export default function MaterialInput({
     e.preventDefault();
     const trimmed = text.trim();
     if (trimmed.length < 80) return;
-    onSubmit(trimmed, selectedSyllabus || undefined);
+    onSubmit(trimmed, selectedSyllabus || undefined, simpleMode ? { simpleMode: true } : undefined);
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -515,6 +531,20 @@ export default function MaterialInput({
 
       {uploadError && mode !== "file" && (
         <p className="text-red-600 text-sm font-medium">{uploadError}</p>
+      )}
+
+      {showSimpleMode && isValid && (
+        <button
+          type="button"
+          onClick={() => setSimpleMode(!simpleMode)}
+          className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
+            simpleMode
+              ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+              : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+          }`}
+        >
+          💡 {simpleMode ? "Modo fácil activado — explicaciones simples con ejemplos" : "Activar modo fácil"}
+        </button>
       )}
 
       <button

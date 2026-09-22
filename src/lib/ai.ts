@@ -30,3 +30,12 @@ export const SYSTEM_PROMPT =
   "7. Adaptá el nivel de profundidad al material recibido: si es un resumen breve, no inventes detalles; si es extenso, aprovechá toda la información disponible.";
 
 export const MAX_INPUT_LENGTH = 100_000;
+
+export const SIMPLE_MODE_SUFFIX =
+  "\n\nIMPORTANTE — MODO FÁCIL ACTIVADO: " +
+  "Explicá TODO de forma MUY SIMPLE, como si le hablaras a un amigo. " +
+  "Usá lenguaje cotidiano argentino. Para cada concepto, dá un ejemplo de la vida cotidiana " +
+  "(ir al super, alquilar un depto, una pelea entre vecinos, etc). " +
+  "Si hay artículos de ley, mencionálos pero explicá qué significan en palabras simples. " +
+  "No pierdas información: explicá TODO lo que está en el material, pero de forma fácil. " +
+  "Usá oraciones cortas y directas, evitá párrafos largos.";

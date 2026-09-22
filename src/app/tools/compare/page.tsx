@@ -29,12 +29,7 @@ export default function ComparePage() {
   const [data, setData] = useState<CompareData | null>(null);
   const [error, setError] = useState("");
 
-  if (status === "unauthenticated") {
-    router.push("/auth/login");
-    return null;
-  }
-
-  const handleGenerate = useCallback(async (text: string, syllabusId?: string) => {
+  const handleGenerate = useCallback(async (text: string, syllabusId?: string, options?: { simpleMode?: boolean }) => {
     setLoading(true);
     setError("");
     setData(null);
@@ -42,7 +37,7 @@ export default function ComparePage() {
       const res = await fetch("/api/ai/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, syllabusId }),
+        body: JSON.stringify({ text, syllabusId, simpleMode: options?.simpleMode }),
       });
       const result = await res.json();
       if (!res.ok) { setError(result.error || "Error al generar"); return; }
@@ -53,6 +48,11 @@ export default function ComparePage() {
       setLoading(false);
     }
   }, []);
+
+  if (status === "unauthenticated") {
+    router.push("/auth/login");
+    return null;
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -69,7 +69,7 @@ export default function ComparePage() {
 
       {!data && (
         <div className="card">
-          <MaterialInput onSubmit={handleGenerate} loading={loading} buttonLabel="Comparar conceptos" />
+          <MaterialInput onSubmit={handleGenerate} loading={loading} buttonLabel="Comparar conceptos" showSimpleMode />
         </div>
       )}
 

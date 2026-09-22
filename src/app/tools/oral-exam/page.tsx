@@ -40,40 +40,42 @@ export default function OralExamPage() {
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [error, setError] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const speechSupported = typeof window !== "undefined" && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-  useEffect(() => {
+  function getRecognition() {
+    if (recognitionRef.current) return recognitionRef.current;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = window as any;
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (SR) {
-      setSpeechSupported(true);
-      const recognition = new SR();
-      recognition.lang = "es-AR";
-      recognition.interimResults = true;
-      recognition.continuous = true;
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let transcript = "";
-        for (let i = 0; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        setAnswer(transcript);
-      };
-      recognition.onerror = () => setIsRecording(false);
-      recognition.onend = () => setIsRecording(false);
-      recognitionRef.current = recognition;
-    }
-  }, []);
+    if (!SR) return null;
+    const recognition = new SR();
+    recognition.lang = "es-AR";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setAnswer(transcript);
+    };
+    recognition.onerror = () => setIsRecording(false);
+    recognition.onend = () => setIsRecording(false);
+    recognitionRef.current = recognition;
+    return recognition;
+  }
 
   function toggleRecording() {
-    if (!recognitionRef.current) return;
+    const rec = getRecognition();
+    if (!rec) return;
     if (isRecording) {
-      recognitionRef.current.stop();
+      rec.stop();
       setIsRecording(false);
     } else {
       setAnswer("");
-      recognitionRef.current.start();
+      rec.start();
       setIsRecording(true);
     }
   }

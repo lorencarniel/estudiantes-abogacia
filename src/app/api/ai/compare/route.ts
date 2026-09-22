@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
-import { openai, AI_MODEL, SYSTEM_PROMPT, MAX_INPUT_LENGTH } from "@/lib/ai";
+import { openai, AI_MODEL, SYSTEM_PROMPT, MAX_INPUT_LENGTH, SIMPLE_MODE_SUFFIX } from "@/lib/ai";
 import { compareConceptsPrompt, compareConceptsSchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { safeJsonParse } from "@/lib/utils";
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { text, syllabusId } = await request.json();
+  const { text, syllabusId, simpleMode } = await request.json();
 
   if (!text || text.length < 80) {
     return NextResponse.json({ error: "El texto debe tener al menos 80 caracteres" }, { status: 400 });
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       model: AI_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: compareConceptsPrompt(text, syllabusContent) },
+        { role: "user", content: compareConceptsPrompt(text, syllabusContent) + (simpleMode ? SIMPLE_MODE_SUFFIX : "") },
       ],
       response_format: {
         type: "json_schema",

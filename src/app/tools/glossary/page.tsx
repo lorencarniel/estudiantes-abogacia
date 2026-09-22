@@ -25,7 +25,7 @@ export default function GlossaryPage() {
     if (status === "unauthenticated") router.push("/auth/login");
   }, [status, router]);
 
-  async function handleGenerate(text: string) {
+  async function handleGenerate(text: string, _syllabusId?: string, options?: { simpleMode?: boolean }) {
     setLoading(true);
     setError("");
 
@@ -33,7 +33,7 @@ export default function GlossaryPage() {
       const res = await fetch("/api/ai/glossary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, simpleMode: options?.simpleMode }),
       });
 
       if (!res.ok) {
@@ -90,6 +90,7 @@ export default function GlossaryPage() {
         onSubmit={handleGenerate}
         loading={loading}
         buttonLabel={terms.length > 0 ? "Agregar más términos" : "Extraer glosario"}
+        showSimpleMode
       />
 
       {loading && (

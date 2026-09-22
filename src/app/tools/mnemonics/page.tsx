@@ -37,7 +37,7 @@ export default function MnemonicsPage() {
     if (status === "unauthenticated") router.push("/auth/login");
   }, [status, router]);
 
-  async function handleGenerate(text: string) {
+  async function handleGenerate(text: string, _syllabusId?: string, options?: { simpleMode?: boolean }) {
     setLoading(true);
     setError("");
     setResult(null);
@@ -46,7 +46,7 @@ export default function MnemonicsPage() {
       const res = await fetch("/api/ai/mnemonic", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, simpleMode: options?.simpleMode }),
       });
 
       if (!res.ok) {
@@ -89,6 +89,7 @@ export default function MnemonicsPage() {
           onSubmit={handleGenerate}
           loading={loading}
           buttonLabel="Generar mnemotécnicos"
+          showSimpleMode
         />
       )}
 
