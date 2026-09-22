@@ -17,7 +17,7 @@ export async function GET(
       where: { id: params.id, userId: session.user.id },
       include: {
         materials: {
-          select: { id: true, title: true, fileName: true, charCount: true, createdAt: true },
+          select: { id: true, title: true, content: true, fileName: true, charCount: true, createdAt: true },
           orderBy: { createdAt: "desc" },
         },
       },
