@@ -25,6 +25,7 @@ export default function OutlinesPage() {
   const [result, setResult] = useState<OutlineResult | null>(null);
   const [error, setError] = useState("");
   const [sourceText, setSourceText] = useState("");
+  const [simpleMode, setSimpleMode] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const { text: autoText, loading: autoLoading, subjectName } = useAutoLoadMaterial();
   const autoTriggered = useRef(false);
@@ -41,17 +42,19 @@ export default function OutlinesPage() {
   }, [autoText]);
 
   const handleGenerate = useCallback(async (text: string, syllabusId?: string, options?: { simpleMode?: boolean }) => {
+    const useSimple = options?.simpleMode ?? simpleMode;
     setLoading(true);
     setError("");
     setResult(null);
     setSourceText(text);
+    setSimpleMode(useSimple);
     setCollapsed(new Set());
 
     try {
       const res = await fetch("/api/ai/outline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, syllabusId, simpleMode: options?.simpleMode }),
+        body: JSON.stringify({ text, syllabusId, simpleMode: useSimple }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -125,8 +128,25 @@ export default function OutlinesPage() {
 
       {result && (
         <div className="card">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{result.title}</h2>
+          </div>
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              onClick={() => {
+                const next = !simpleMode;
+                setSimpleMode(next);
+                handleGenerate(sourceText, undefined, { simpleMode: next });
+              }}
+              disabled={loading}
+              className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
+                simpleMode
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                  : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`}
+            >
+              {simpleMode ? "💡 Modo fácil ON" : "💡 Activar modo fácil"}
+            </button>
             <button onClick={() => { setResult(null); setSourceText(""); }} className="text-sm text-primary-600 hover:text-primary-800 font-medium">Nuevo esquema</button>
           </div>
 
@@ -177,31 +197,34 @@ export default function OutlinesPage() {
           </div>
 
           {sourceText && (
-            <div className="border-t border-gray-100 dark:border-gray-700 pt-6 mt-6 flex flex-wrap gap-2">
-              <button
-                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/highlighter"); }}
-                className="text-sm px-4 py-2 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 font-medium transition-colors"
-              >
-                🖍️ Resaltar
-              </button>
-              <button
-                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/summaries"); }}
-                className="text-sm px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 font-medium transition-colors"
-              >
-                📄 Resumen
-              </button>
-              <button
-                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/flashcards"); }}
-                className="text-sm px-4 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 font-medium transition-colors"
-              >
-                🃏 Flashcards
-              </button>
-              <button
-                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/quizzes"); }}
-                className="text-sm px-4 py-2 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50 font-medium transition-colors"
-              >
-                ✅ Quiz
-              </button>
+            <div className="border-t border-gray-100 dark:border-gray-700 pt-6 mt-6">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Usar este material en otra herramienta</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { sessionStorage.setItem("crossToolText", sourceText); sessionStorage.setItem("crossToolAutoSubmit", "1"); router.push("/tools/highlighter"); }}
+                  className="text-sm px-4 py-2 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 font-medium transition-colors"
+                >
+                  🖍️ Resaltar
+                </button>
+                <button
+                  onClick={() => { sessionStorage.setItem("crossToolText", sourceText); sessionStorage.setItem("crossToolAutoSubmit", "1"); router.push("/tools/summaries"); }}
+                  className="text-sm px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 font-medium transition-colors"
+                >
+                  📄 Resumen
+                </button>
+                <button
+                  onClick={() => { sessionStorage.setItem("crossToolText", sourceText); sessionStorage.setItem("crossToolAutoSubmit", "1"); router.push("/tools/flashcards"); }}
+                  className="text-sm px-4 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 font-medium transition-colors"
+                >
+                  🃏 Flashcards
+                </button>
+                <button
+                  onClick={() => { sessionStorage.setItem("crossToolText", sourceText); sessionStorage.setItem("crossToolAutoSubmit", "1"); router.push("/tools/quizzes"); }}
+                  className="text-sm px-4 py-2 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50 font-medium transition-colors"
+                >
+                  ✅ Quiz
+                </button>
+              </div>
             </div>
           )}
         </div>

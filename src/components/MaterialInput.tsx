@@ -71,10 +71,15 @@ export default function MaterialInput({
       const cross = sessionStorage.getItem("crossToolText");
       if (cross) {
         sessionStorage.removeItem("crossToolText");
+        const autoSubmit = sessionStorage.getItem("crossToolAutoSubmit");
+        sessionStorage.removeItem("crossToolAutoSubmit");
         setText(cross);
         setFileName("Material de otra herramienta");
         setFileCharCount(cross.length);
         setFileReady(true);
+        if (autoSubmit && cross.trim().length >= 80) {
+          setTimeout(() => onSubmit(cross.trim()), 100);
+        }
       }
     } catch {}
   }, []);

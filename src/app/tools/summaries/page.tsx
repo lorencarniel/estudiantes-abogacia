@@ -22,6 +22,7 @@ export default function SummariesPage() {
   const [error, setError] = useState("");
   const [level, setLevel] = useState<"corto" | "mediano" | "detallado">("mediano");
   const [sourceText, setSourceText] = useState("");
+  const [simpleMode, setSimpleMode] = useState(false);
   const [expanding, setExpanding] = useState(false);
   const [expandCount, setExpandCount] = useState(0);
   const { text: autoText, loading: autoLoading, subjectName } = useAutoLoadMaterial();
@@ -40,17 +41,19 @@ export default function SummariesPage() {
   }, [autoText]);
 
   async function handleGenerate(text: string, syllabusId?: string, options?: { simpleMode?: boolean }) {
+    const useSimple = options?.simpleMode ?? simpleMode;
     setLoading(true);
     setError("");
     setResult(null);
     setSourceText(text);
+    setSimpleMode(useSimple);
     setExpandCount(0);
 
     try {
       const res = await fetch("/api/ai/summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, level, syllabusId, simpleMode: options?.simpleMode }),
+        body: JSON.stringify({ text, level, syllabusId, simpleMode: useSimple }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -160,9 +163,34 @@ export default function SummariesPage() {
       {result && (
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">{result.title}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{result.title}</h2>
             <ExportPDF contentRef={contentRef} fileName={result.title} />
           </div>
+
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => {
+                const next = !simpleMode;
+                setSimpleMode(next);
+                handleGenerate(sourceText, undefined, { simpleMode: next });
+              }}
+              disabled={loading}
+              className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
+                simpleMode
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                  : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`}
+            >
+              {simpleMode ? "💡 Modo fácil ON" : "💡 Activar modo fácil"}
+            </button>
+            <button
+              onClick={() => { setResult(null); setSourceText(""); }}
+              className="text-sm text-primary-600 hover:text-primary-800 font-medium"
+            >
+              Nuevo resumen
+            </button>
+          </div>
+
           <div ref={contentRef}>
 
           <div className="prose prose-gray max-w-none mb-8">
@@ -191,37 +219,40 @@ export default function SummariesPage() {
           )}
 
           </div>
-          <div className="border-t border-gray-100 pt-6 mt-6 flex flex-wrap gap-2">
-            <button
-              onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/highlighter"); }}
-              className="text-sm px-4 py-2 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 font-medium transition-colors"
-            >
-              🖍️ Resaltar
-            </button>
-            <button
-              onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/outlines"); }}
-              className="text-sm px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 font-medium transition-colors"
-            >
-              📊 Generar esquema
-            </button>
-            <button
-              onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/flashcards"); }}
-              className="text-sm px-4 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 font-medium transition-colors"
-            >
-              🃏 Flashcards
-            </button>
-            <button
-              onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/quizzes"); }}
-              className="text-sm px-4 py-2 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50 font-medium transition-colors"
-            >
-              ✅ Quiz
-            </button>
-            <button
-              onClick={() => { sessionStorage.setItem("crossToolText", sourceText); router.push("/tools/games"); }}
-              className="text-sm px-4 py-2 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-100 dark:bg-pink-900/30 dark:text-pink-400 dark:hover:bg-pink-900/50 font-medium transition-colors"
-            >
-              🎮 Juego
-            </button>
+          <div className="border-t border-gray-100 dark:border-gray-700 pt-6 mt-6">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Usar este material en otra herramienta</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); sessionStorage.setItem("crossToolAutoSubmit", "1"); router.push("/tools/highlighter"); }}
+                className="text-sm px-4 py-2 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 font-medium transition-colors"
+              >
+                🖍️ Resaltar
+              </button>
+              <button
+                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); sessionStorage.setItem("crossToolAutoSubmit", "1"); router.push("/tools/outlines"); }}
+                className="text-sm px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 font-medium transition-colors"
+              >
+                📊 Esquema
+              </button>
+              <button
+                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); sessionStorage.setItem("crossToolAutoSubmit", "1"); router.push("/tools/flashcards"); }}
+                className="text-sm px-4 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 font-medium transition-colors"
+              >
+                🃏 Flashcards
+              </button>
+              <button
+                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); sessionStorage.setItem("crossToolAutoSubmit", "1"); router.push("/tools/quizzes"); }}
+                className="text-sm px-4 py-2 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50 font-medium transition-colors"
+              >
+                ✅ Quiz
+              </button>
+              <button
+                onClick={() => { sessionStorage.setItem("crossToolText", sourceText); sessionStorage.setItem("crossToolAutoSubmit", "1"); router.push("/tools/games"); }}
+                className="text-sm px-4 py-2 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-100 dark:bg-pink-900/30 dark:text-pink-400 dark:hover:bg-pink-900/50 font-medium transition-colors"
+              >
+                🎮 Juego
+              </button>
+            </div>
           </div>
 
           <div className="border-t border-gray-100 pt-6 mt-6">
