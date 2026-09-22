@@ -31,6 +31,7 @@ export default function ChatPage() {
   const [notebookName, setNotebookName] = useState("");
   const [notebooks, setNotebooks] = useState<NotebookOption[]>([]);
   const [inputMode, setInputMode] = useState<"text" | "notebook">("text");
+  const [simpleMode, setSimpleMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -104,7 +105,7 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const body: Record<string, unknown> = { messages: newMessages };
+      const body: Record<string, unknown> = { messages: newMessages, simpleMode };
       if (notebookId) {
         body.notebookId = notebookId;
       } else {
@@ -127,7 +128,7 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
-  }, [input, loading, messages, sourceText, notebookId]);
+  }, [input, loading, messages, sourceText, notebookId, simpleMode]);
 
   function handleReset() {
     setChatStarted(false);
@@ -137,6 +138,7 @@ export default function ChatPage() {
     setNotebookId(null);
     setNotebookName("");
     setInputMode("text");
+    setSimpleMode(false);
   }
 
   return (
@@ -230,9 +232,22 @@ export default function ChatPage() {
                 </span>
               )}
             </div>
-            <button onClick={handleReset} className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-800 font-medium">
-              Nuevo chat
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSimpleMode(!simpleMode)}
+                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors ${
+                  simpleMode
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                    : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                }`}
+                title={simpleMode ? "Modo simple activado: explicaciones fáciles con ejemplos cotidianos" : "Activar modo simple"}
+              >
+                💡 {simpleMode ? "Modo fácil ON" : "Explicame fácil"}
+              </button>
+              <button onClick={handleReset} className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-800 font-medium">
+                Nuevo chat
+              </button>
+            </div>
           </div>
 
           <div className="h-[500px] overflow-y-auto p-4 space-y-4">

@@ -39,9 +39,8 @@ export async function GET() {
     for (const g of games) {
       const key = g.title;
       if (!topicMap.has(key)) topicMap.set(key, { quizScores: [], gameScores: [] });
-      topicMap.get(key)!.gameScores.push(
-        g.total > 0 ? Math.round(((g.score || 0) / g.total) * 100) : 0
-      );
+      const rawPct = g.total > 0 ? Math.round(((g.score || 0) / g.total) * 100) : 0;
+      topicMap.get(key)!.gameScores.push(Math.min(rawPct, 100));
     }
 
     const topics = Array.from(topicMap.entries())

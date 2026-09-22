@@ -18,6 +18,7 @@ export const XP_ACTIONS: Record<string, number> = {
   concept_map: 30,
   comparison: 25,
   highlight: 25,
+  debate: 50,
 };
 
 const LEVELS = [

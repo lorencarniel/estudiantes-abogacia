@@ -1214,7 +1214,8 @@ export default function GamesPage() {
     );
   }
 
-  if (gameState === "playing" && game && (game.gameType === "matching" || game.gameType === "ordering" || game.gameType === "fill_blank")) {
+  const interactiveTypes = new Set(["matching", "ordering", "fill_blank", "hangman", "memory", "categorize", "article_fill", "millionaire", "timeline", "crossword"]);
+  if (gameState === "playing" && game && interactiveTypes.has(game.gameType)) {
     return <InteractiveGame game={game} onComplete={(finalScore) => { setScore(finalScore); completeGame(game.id, [], finalScore, 0); setGameState("results"); }} onExit={resetGame} />;
   }
 

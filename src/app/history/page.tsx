@@ -29,6 +29,7 @@ const TYPE_META: Record<string, { icon: string; label: string; color: string }> 
   mnemonic: { icon: "🧠", label: "Mnemotécnico", color: "bg-lime-100 text-lime-700" },
   glossary: { icon: "📚", label: "Glosario", color: "bg-emerald-100 text-emerald-700" },
   highlight: { icon: "🖍️", label: "Resaltador", color: "bg-yellow-100 text-yellow-700" },
+  debate: { icon: "⚖️", label: "Debate", color: "bg-indigo-100 text-indigo-700" },
 };
 
 const FILTERS = [

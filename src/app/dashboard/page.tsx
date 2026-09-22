@@ -123,6 +123,13 @@ const tools = [
     available: true,
   },
   {
+    icon: "⚖️",
+    title: "Debate jurídico",
+    description: "Debatí contra la IA que toma la postura contraria.",
+    href: "/tools/debate",
+    available: true,
+  },
+  {
     icon: "🧠",
     title: "Mnemotécnicos",
     description: "Generá reglas mnemotécnicas para memorizar conceptos difíciles.",
@@ -161,6 +168,7 @@ const TYPE_ICONS: Record<string, string> = {
   mnemonic: "🧠",
   glossary: "📚",
   highlight: "🖍️",
+  debate: "⚖️",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -179,6 +187,7 @@ const TYPE_LABELS: Record<string, string> = {
   mnemonic: "Mnemotécnico",
   glossary: "Glosario",
   highlight: "Resaltador",
+  debate: "Debate",
 };
 
 interface RecentItem {
