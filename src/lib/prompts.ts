@@ -89,18 +89,19 @@ export function expandSummaryPrompt(text: string, currentSummary: string, curren
 export function outlinePrompt(text: string, syllabus?: string): string {
   return (
     `${BASE_RULES} ` +
-    "Tu tarea es EXTRAER y ORGANIZAR toda la información del apunte en un esquema jerárquico. " +
-    "NO es un resumen ni una vista general: es una extracción exhaustiva de cada dato del material.\n\n" +
+    "Tu tarea es EXTRAER y ORGANIZAR toda la información del apunte en un esquema de estudio jerárquico.\n\n" +
     "MÉTODO: Recorré el apunte párrafo por párrafo, de principio a fin. " +
     "Todo lo que dice el apunte debe quedar en el esquema. Si un dato del apunte no aparece en tu esquema, es un error.\n\n" +
     "REGLAS:\n" +
-    "- Cada item del esquema debe contener el DATO CONCRETO del material, no una descripción de que el tema existe. " +
-    "MAL: 'Se analizan las formas de Estado'. BIEN: 'Unitario: un solo centro de poder. Federal: coexisten gobierno central y gobiernos locales. Confederado: Estados soberanos se unen por pacto. Regional: Estado unitario con descentralización política.'\n" +
-    "- Si el material enumera una lista (fuentes, tipos, autores, principios, artículos), transcribí CADA elemento. Nunca 'entre otras', 'etc.', 'los principales' ni 'se mencionan'.\n" +
-    "- Si el material define un concepto, la nota debe contener ESA definición, no una versión genérica.\n" +
-    "- Si el material atribuye una idea a un autor, incluí autor + idea concreta.\n" +
-    "- Si el material cita artículos de la CN o leyes, incluí el número y qué establece.\n" +
-    "- Usá tantas secciones e items como necesites. Sin límite.\n\n" +
+    "- Cada item debe contener el DATO CONCRETO del material. " +
+    "MAL: 'Se analizan las formas de Estado'. " +
+    "BIEN: 'Unitario: un solo centro de poder. Federal: coexisten gobierno central y locales. Confederado: Estados soberanos unidos por pacto.'\n" +
+    "- Enumeraciones COMPLETAS: si el material lista fuentes, tipos o clasificaciones, incluí TODOS los elementos.\n" +
+    "- Autores: incluí autor + aporte concreto, no solo el nombre.\n" +
+    "- Artículos: incluí número + qué establece.\n" +
+    "- NO inventes información ni ejemplos que no estén en el material.\n" +
+    "- NO uses frases vacías: 'este tema es importante', 'se mencionan', 'entre otras'.\n" +
+    "- Usá tantas secciones e items como necesites.\n\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
@@ -157,8 +158,15 @@ export const outlineSchema = {
 export function parseSyllabusPrompt(syllabusText: string): string {
   return (
     "Parseá el siguiente programa de materia universitaria. " +
-    "Extraé TODAS las unidades con su número, título y la lista COMPLETA de temas y subtemas tal como aparecen. " +
-    "No resumas ni agrupes temas. Transcribí cada punto del programa.\n" +
+    "Extraé TODAS las unidades con su número, título y la lista COMPLETA de temas y subtemas.\n\n" +
+    "REGLA CLAVE: Distinguí CONTENIDOS de OBJETIVOS DE APRENDIZAJE.\n" +
+    "- Un CONTENIDO es un tema que se estudia: 'Formas de Estado', 'Federalismo argentino', 'Fuentes del derecho'.\n" +
+    "- Un OBJETIVO es una meta pedagógica: 'Comprender el federalismo', 'Conocer las formas de gobierno', 'Analizar la autonomía'.\n" +
+    "- En la lista de topics incluí SOLO los CONTENIDOS.\n" +
+    "- Si el programa tiene una sección de objetivos, ignorala para la extracción de temas.\n" +
+    "- Si un punto es mixto ('Conocer y analizar las formas de Estado: unitario, federal, confederado'), " +
+    "extraé el contenido: 'Formas de Estado: unitario, federal, confederado'.\n" +
+    "- Transcribí cada tema tal como aparece, sin resumir ni agrupar.\n" +
     `<programa>\n${syllabusText}\n</programa>`
   );
 }
@@ -190,23 +198,33 @@ export const parseSyllabusSchema = {
 export function unitOutlinePrompt(material: string, unitTitle: string, unitTopics: string[]): string {
   return (
     `${BASE_RULES} ` +
-    "Tu tarea es EXTRAER del material de estudio todo el contenido correspondiente a UNA unidad específica del programa.\n\n" +
+    "Tu tarea es EXTRAER del material de estudio el contenido de UNA unidad del programa y organizarlo como esquema de estudio.\n\n" +
     `UNIDAD: ${unitTitle}\n` +
-    "TEMAS ESPERADOS SEGÚN EL PROGRAMA:\n" +
+    "TEMAS DEL PROGRAMA:\n" +
     unitTopics.map((t, i) => `${i + 1}. ${t}`).join("\n") +
-    "\n\nMÉTODO:\n" +
-    "1. Buscá en TODO el material los contenidos de cada tema de esta unidad. " +
-    "El material puede estar en diferente orden o con títulos distintos al programa.\n" +
-    "2. Para cada tema, extraé TODOS los datos concretos: definiciones textuales, clasificaciones completas, " +
-    "autores con sus aportes específicos, artículos con su contenido, enumeraciones sin omitir elementos.\n" +
-    "3. No mezcles contenido de otras unidades.\n" +
-    "4. Si un tema del programa NO está desarrollado en el material, incluílo en missing_topics.\n" +
-    "5. Las notas deben contener el dato concreto del material. " +
-    "MAL: 'Se analizan las formas de Estado'. " +
-    "BIEN: 'Unitario: un solo centro de poder. Federal: coexisten gobierno central y locales con autonomía. " +
-    "Confederado: Estados soberanos unidos por pacto, conservan derecho de secesión.'\n" +
-    "6. Nunca uses 'entre otras', 'etc.', 'se mencionan' ni 'los principales'.\n" +
-    "7. Usá tantas secciones e items como necesites.\n\n" +
+    "\n\nQUÉ ES UN ESQUEMA DE ESTUDIO:\n" +
+    "Un esquema organiza los CONTENIDOS del material para estudiar. NO es un glosario, NO es una transcripción, NO es una lista de objetivos con ejemplos.\n" +
+    "Cada sección y cada item deben contener información concreta extraída del material: definiciones, clasificaciones, diferencias, principios, autores con sus aportes, artículos con lo que establecen.\n\n" +
+    "MÉTODO:\n" +
+    "1. Usá los temas del programa como GUÍA DE ESTRUCTURA, no como preguntas a responder.\n" +
+    "   - Si el programa dice 'Formas de Estado', buscá en el material qué formas de Estado describe y extraé ese contenido.\n" +
+    "   - Si el programa dice 'Comprender el federalismo', eso es un OBJETIVO de aprendizaje, no un tema. Buscá en el material el contenido sobre federalismo.\n" +
+    "2. Buscá en TODO el material. El contenido puede estar en diferente orden o bajo otros títulos.\n" +
+    "3. No mezcles contenido de otras unidades.\n\n" +
+    "PROHIBICIONES:\n" +
+    "- NO agregues información que NO esté en el material. Si el material no define un concepto, no lo definas vos.\n" +
+    "- NO inventes ejemplos (ciudades antiguas, agua, impuestos). Solo incluí ejemplos que estén en el material.\n" +
+    "- NO conviertas objetivos del programa en explicaciones genéricas.\n" +
+    "- NO uses frases vacías: 'este tema es importante', 'cada autor aporta su visión', 'se analizan las formas'.\n" +
+    "- NO uses 'entre otras', 'etc.', 'se mencionan', 'los principales'.\n" +
+    "- NO hagas afirmaciones imprecisas. MAL: 'Los municipios se originaron en 1994'. BIEN: 'La reforma de 1994 incorporó la autonomía municipal en el art. 123 CN.'\n" +
+    "- La numeración debe ser jerárquica y coherente. No usar '2.2.' y '3.3.' si son subsecciones del mismo nivel.\n\n" +
+    "COBERTURA:\n" +
+    "- Cada enumeración del material (fuentes, tipos, clasificaciones) debe estar COMPLETA.\n" +
+    "- Si el material menciona un autor con un aporte, incluí autor + aporte concreto.\n" +
+    "- Si el material cita un artículo de la CN o ley, incluí número + contenido.\n" +
+    "- Si un tema del programa NO está desarrollado en el material, poné ese tema en missing_topics. No lo completes inventando.\n" +
+    "- Usá tantas secciones e items como necesites.\n\n" +
     "Devolvé JSON conforme al esquema.\n" +
     `<material>\n${material}\n</material>`
   );
