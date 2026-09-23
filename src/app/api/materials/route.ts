@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const MAX_MATERIALS = 30;
+const MAX_MATERIALS = 50;
 const MAX_CONTENT_LENGTH = 100_000;
 const MIN_CONTENT_LENGTH = 80;
 

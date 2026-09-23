@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -49,6 +49,9 @@ export default function NotebooksPage() {
   const [unassigned, setUnassigned] = useState<MaterialItem[]>([]);
   const [loadingUnassigned, setLoadingUnassigned] = useState(false);
   const [error, setError] = useState("");
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ total: number; done: number; current: string; errors: string[] }>({ total: 0, done: 0, current: "", errors: [] });
+  const bulkFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
@@ -171,6 +174,70 @@ export default function NotebooksPage() {
         await fetchNotebooks();
       }
     } catch {}
+  }
+
+  async function handleBulkUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !selectedNotebook) return;
+
+    const fileList = Array.from(files);
+    setBulkUploading(true);
+    setBulkProgress({ total: fileList.length, done: 0, current: "", errors: [] });
+
+    const errors: string[] = [];
+
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      setBulkProgress((prev) => ({ ...prev, current: file.name, done: i }));
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const extractRes = await fetch("/api/ai/extract", {
+          method: "POST",
+          body: formData,
+        });
+        const extractData = await extractRes.json();
+
+        if (!extractRes.ok) {
+          errors.push(`${file.name}: ${extractData.error}`);
+          continue;
+        }
+
+        const title = file.name.replace(/\.[^.]+$/, "");
+        const saveRes = await fetch("/api/materials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            content: extractData.text,
+            fileName: file.name,
+            notebookId: selectedNotebook.id,
+          }),
+        });
+
+        if (!saveRes.ok) {
+          const saveData = await saveRes.json();
+          errors.push(`${file.name}: ${saveData.error}`);
+        }
+      } catch {
+        errors.push(`${file.name}: Error de conexión`);
+      }
+    }
+
+    setBulkProgress({ total: fileList.length, done: fileList.length, current: "", errors });
+    await openNotebook(selectedNotebook.id);
+    await fetchNotebooks();
+
+    setTimeout(() => {
+      setBulkUploading(false);
+      if (errors.length === 0) {
+        setBulkProgress({ total: 0, done: 0, current: "", errors: [] });
+      }
+    }, 1500);
+
+    if (bulkFileRef.current) bulkFileRef.current.value = "";
   }
 
   if (status === "loading" || loading) {
@@ -311,7 +378,7 @@ export default function NotebooksPage() {
                 </button>
               </div>
 
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-2 mb-4 flex-wrap">
                 <button
                   onClick={() => { setShowAddMaterial(false); fetchUnassigned(); }}
                   className="btn-secondary text-xs py-1.5 px-3"
@@ -322,8 +389,20 @@ export default function NotebooksPage() {
                   onClick={() => setShowAddMaterial(true)}
                   className="btn-secondary text-xs py-1.5 px-3"
                 >
-                  + Subir apunte nuevo
+                  + Pegar texto
                 </button>
+                <label className="btn-secondary text-xs py-1.5 px-3 cursor-pointer inline-flex items-center gap-1">
+                  📎 Subir archivos
+                  <input
+                    ref={bulkFileRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                    onChange={handleBulkUpload}
+                    className="sr-only"
+                    disabled={bulkUploading}
+                  />
+                </label>
                 <Link
                   href={`/tools/chat?notebook=${selectedNotebook.id}`}
                   className="btn-primary text-xs py-1.5 px-3"
@@ -331,6 +410,32 @@ export default function NotebooksPage() {
                   💬 Chatear con este cuaderno
                 </Link>
               </div>
+
+              {bulkUploading && (
+                <div className="mb-4 p-4 border border-primary-200 dark:border-primary-700 rounded-lg bg-primary-50 dark:bg-primary-900/20">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600" />
+                    <p className="text-sm font-medium text-primary-800 dark:text-primary-300">
+                      Subiendo {bulkProgress.done + 1} de {bulkProgress.total}: {bulkProgress.current}
+                    </p>
+                  </div>
+                  <div className="w-full bg-primary-100 dark:bg-primary-900/40 rounded-full h-2">
+                    <div
+                      className="bg-primary-600 h-2 rounded-full transition-all"
+                      style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!bulkUploading && bulkProgress.errors.length > 0 && (
+                <div className="mb-4 p-4 border border-red-200 dark:border-red-700 rounded-lg bg-red-50 dark:bg-red-900/20">
+                  <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-2">Algunos archivos tuvieron errores:</p>
+                  {bulkProgress.errors.map((err, i) => (
+                    <p key={i} className="text-xs text-red-600 dark:text-red-400">{err}</p>
+                  ))}
+                </div>
+              )}
 
               {showAddMaterial && (
                 <div className="mb-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
