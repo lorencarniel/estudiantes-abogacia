@@ -33,7 +33,7 @@ export function summaryPrompt(text: string, level: "corto" | "mediano" | "detall
   const guidance = {
     corto: "Redactá un resumen conciso de no más de 300 palabras, con los puntos absolutamente esenciales.",
     mediano: "Redactá un resumen de extensión media (500-800 palabras) que cubra los conceptos principales con cierto desarrollo.",
-    detallado: "Redactá un resumen detallado y exhaustivo (1500-3000 palabras) que cubra TODOS los temas del apunte sin omitir ninguno. Incluí cada definición, clasificación, enumeración, autor, artículo y ejemplo que aparezca en el material. No dejes ningún tema afuera.",
+    detallado: "Redactá un resumen detallado y exhaustivo (1500-3000 palabras) que cubra TODOS los temas del apunte de principio a fin sin omitir ninguno. Cada definición, clasificación, enumeración, autor, artículo y ejemplo del material debe estar. Si el material enumera ítems, listalos todos, nunca uses 'entre otras' ni 'etc.'. No dejes ningún tema afuera.",
   }[level];
 
   return (
@@ -91,12 +91,15 @@ export function outlinePrompt(text: string, syllabus?: string): string {
     `${BASE_RULES} ` +
     "Generá un esquema jerárquico (tipo índice/outline) basado exclusivamente en el apunte. " +
     "Organizá la información en secciones y subsecciones lógicas, respetando la estructura original del material cuando la tenga. " +
-    "IMPORTANTE: Cubrí TODO el contenido del apunte de principio a fin, sin omitir ningún tema, subtema, definición, clasificación ni enumeración. " +
-    "No resumas ni abrevies: cada concepto, autor, artículo, distinción o enumeración que aparece en el material debe estar reflejado en el esquema. " +
-    "Cada nodo del esquema debe tener un título breve y una nota explicativa que aporte contenido concreto (definiciones, diferencias, ejemplos), no frases vagas. " +
-    "Si hay artículos o normas mencionados, incluílos en el lugar correspondiente del esquema. " +
-    "Usá tantas secciones y subsecciones como sean necesarias para cubrir todo el material sin omisiones. " +
-    "Devolvé únicamente JSON conforme al esquema.\n" +
+    "\n\nREGLAS ESTRICTAS DE COBERTURA:\n" +
+    "1. Leé el apunte COMPLETO de principio a fin. Cada párrafo del material debe tener su reflejo en el esquema.\n" +
+    "2. Si el material enumera ítems (fuentes, tipos, clasificaciones, autores, principios), el esquema debe listar TODOS, no usar 'entre otras', 'etc.' ni 'se mencionan los principales'.\n" +
+    "3. Si el material distingue subtipos o categorías (ej: democracia directa/indirecta/semidirecta, estado unitario/federal/confederado/regional), TODOS deben aparecer como subsecciones con su definición.\n" +
+    "4. Si el material menciona artículos de la Constitución o leyes, incluílos con su contenido específico.\n" +
+    "5. Si el material nombra autores con aportes específicos, incluí qué dijo o aportó cada uno, no solo el nombre.\n" +
+    "6. Las notas explicativas deben aportar contenido concreto: definiciones, diferencias, requisitos, ejemplos del material. NUNCA frases vagas como 'se explican los conceptos' o 'se mencionan los referentes'.\n" +
+    "7. Usá tantas secciones y subsecciones como sean necesarias. No hay límite.\n" +
+    "\nDevolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
   );
