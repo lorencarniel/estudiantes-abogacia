@@ -29,6 +29,7 @@ function makeComparison(overrides: Partial<Comparison> = {}): Comparison {
         source_b: "La confederación se origina en un pacto entre Estados soberanos",
         source_section_a: "Federación",
         source_section_b: "Confederación",
+        requires_inverse_inference: false,
       },
     ],
     similarities: [
@@ -55,6 +56,7 @@ function makeDifference(overrides: Partial<ComparisonDifference> = {}): Comparis
     source_b: "La confederación se origina en un pacto entre Estados soberanos",
     source_section_a: "Federación",
     source_section_b: "Confederación",
+    requires_inverse_inference: false,
     ...overrides,
   };
 }
@@ -233,6 +235,43 @@ describe("contaminación cross-sección", () => {
     const result = validateComparison(comp);
     expect(result.filteredDifferences).toHaveLength(2);
     expect(result.addedWarnings.some((w) => w.includes("verificar sección fuente"))).toBe(true);
+  });
+});
+
+// ── Test 7b: Inferencia inversa ──
+describe("inferencia inversa", () => {
+  it("no filtra diferencia con requires_inverse_inference si un lado tiene source", () => {
+    const diff = makeDifference({
+      concept_b_value: "[La fuente no desarrolla explícitamente este aspecto]",
+      source_b: "",
+      requires_inverse_inference: true,
+    });
+    expect(hasUnsourcedDifference(diff)).toBe(false);
+  });
+
+  it("filtra diferencia con requires_inverse_inference si ningún lado tiene source", () => {
+    const diff = makeDifference({
+      source_a: "",
+      source_b: "",
+      requires_inverse_inference: true,
+    });
+    expect(hasUnsourcedDifference(diff)).toBe(true);
+  });
+
+  it("genera warning para diferencia con inferencia inversa", () => {
+    const comp = makeComparison({
+      differences: [
+        makeDifference({
+          aspect: "Órganos centrales",
+          concept_b_value: "[La fuente no desarrolla explícitamente este aspecto]",
+          source_b: "",
+          requires_inverse_inference: true,
+        }),
+      ],
+    });
+    const result = validateComparison(comp);
+    expect(result.filteredDifferences).toHaveLength(1);
+    expect(result.addedWarnings.some((w) => w.includes("no está desarrollado explícitamente"))).toBe(true);
   });
 });
 

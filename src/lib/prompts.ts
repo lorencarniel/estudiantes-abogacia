@@ -1369,11 +1369,19 @@ export function compareConceptsPrompt(text: string, syllabus?: string): string {
     "9. TERMINOLOGÍA JURÍDICA: No reemplazar términos jurídicos por expresiones aproximadas. " +
     "Si la fuente dice 'imperium sobre los Estados', no convertirlo en 'el gobierno central " +
     "puede legislar sobre los Estados'. Usá la terminología exacta de la fuente.\n\n" +
+    "10. NO INFERIR EL OPUESTO: Cuando la fuente desarrolla un atributo solo para uno de los " +
+    "dos conceptos (ej: 'la federación tiene órganos centrales') pero NO dice explícitamente " +
+    "lo opuesto para el otro concepto, NO inferir el valor contrario. En ese caso:\n" +
+    "- Poné como valor del lado no desarrollado: '[La fuente no desarrolla explícitamente este aspecto]'\n" +
+    "- Dejá el source correspondiente como string vacío\n" +
+    "- Marcá requires_inverse_inference: true en esa diferencia\n" +
+    "Es preferible una tabla parcialmente incompleta pero fiel, que una tabla completa con inferencias.\n\n" +
     "ESTRUCTURA POR COMPARACIÓN:\n" +
     "- concept_a, concept_b: nombres cortos\n" +
     "- concept_a_supported, concept_b_supported: si el concepto está suficientemente desarrollado\n" +
     "- definition_a, definition_b: definición según la fuente (o aviso si no hay)\n" +
-    "- differences: array de {aspect, concept_a_value, concept_b_value, source_a, source_b, source_section_a, source_section_b}\n" +
+    "- differences: array de {aspect, concept_a_value, concept_b_value, source_a, source_b, source_section_a, source_section_b, requires_inverse_inference}\n" +
+    "  - requires_inverse_inference: true cuando uno de los dos lados fue completado con el placeholder porque la fuente no lo desarrolla\n" +
     "- similarities: array de {statement, source_fragment, source_section} — vacío si no hay respaldadas\n" +
     "- articles: normativa vinculada explícitamente — vacío si no hay\n" +
     "- example: texto del ejemplo — vacío si no hay\n" +
@@ -1415,7 +1423,7 @@ export const compareConceptsSchema: Record<string, unknown> = {
             items: {
               type: "object" as const,
               additionalProperties: false,
-              required: ["aspect", "concept_a_value", "concept_b_value", "source_a", "source_b", "source_section_a", "source_section_b"],
+              required: ["aspect", "concept_a_value", "concept_b_value", "source_a", "source_b", "source_section_a", "source_section_b", "requires_inverse_inference"],
               properties: {
                 aspect: { type: "string" as const },
                 concept_a_value: { type: "string" as const },
@@ -1424,6 +1432,7 @@ export const compareConceptsSchema: Record<string, unknown> = {
                 source_b: { type: "string" as const },
                 source_section_a: { type: "string" as const },
                 source_section_b: { type: "string" as const },
+                requires_inverse_inference: { type: "boolean" as const },
               },
             },
           },
@@ -1459,15 +1468,24 @@ export function compareValidationPrompt(
     "Sos un verificador independiente de comparaciones de conceptos jurídicos para estudio universitario.\n\n" +
     "Recibís el material fuente y un conjunto de comparaciones generadas. " +
     "Para CADA comparación, verificá los siguientes criterios:\n\n" +
+    "IMPORTANTE: Una comparación NO necesita tener ejemplo práctico, normativa, artículos ni semejanzas " +
+    "si la fuente no los contiene. NO penalices la ausencia de estas secciones. " +
+    "Evaluá ÚNICAMENTE: fidelidad al material, suficiente respaldo textual, correcta asignación de conceptos, " +
+    "ausencia de conocimiento externo y ausencia de inferencias no respaldadas.\n\n" +
     "1. concept_a_supported: ¿El concepto A está suficientemente desarrollado en la fuente (no solo mencionado)?\n" +
     "2. concept_b_supported: ¿El concepto B está suficientemente desarrollado en la fuente (no solo mencionado)?\n" +
     "3. definitions_supported: ¿Las definiciones reflejan fielmente la fuente? Una definición que usa " +
     "frases genéricas como 'es la rama que…' o 'el pueblo ejerce…' sin que eso aparezca en el material " +
     "debe marcarse como false.\n" +
-    "4. differences_supported: ¿Cada diferencia tiene respaldo textual para ambos conceptos?\n" +
-    "5. similarities_supported: ¿Cada semejanza es concreta y respaldada (no genérica inventada)?\n" +
-    "6. normative_supported: ¿La normativa citada está vinculada explícitamente en la fuente?\n" +
-    "7. example_correct: ¿El ejemplo es fiel a la fuente o no contradice el material?\n" +
+    "4. differences_supported: ¿Cada diferencia tiene respaldo textual? Si una diferencia marca " +
+    "requires_inverse_inference=true y usa el placeholder '[La fuente no desarrolla explícitamente este aspecto]', " +
+    "eso es CORRECTO — no penalizar. Solo penalizar diferencias que inventan un valor sin respaldo.\n" +
+    "5. similarities_supported: ¿Cada semejanza es concreta y respaldada (no genérica inventada)? " +
+    "Si el array de semejanzas está vacío, eso es CORRECTO — no penalizar.\n" +
+    "6. normative_supported: ¿La normativa citada está vinculada explícitamente en la fuente? " +
+    "Si no hay normativa (string vacío), eso es CORRECTO — no penalizar.\n" +
+    "7. example_correct: ¿El ejemplo es fiel a la fuente o no contradice el material? " +
+    "Si no hay ejemplo, eso es CORRECTO — no penalizar.\n" +
     "8. no_external_knowledge: ¿No se usó conocimiento general del LLM para definir, diferenciar o " +
     "ejemplificar conceptos que la fuente no desarrolla?\n" +
     "9. no_meaning_change: ¿No se alteró el significado de términos jurídicos?\n" +
@@ -1477,8 +1495,11 @@ export function compareValidationPrompt(
     "donde se trata ESE concepto? No debe haber contenido tomado de una sección sobre otro tema " +
     "(ej: tomar datos de 'Estados regionales' y asignarlos a 'Confederación').\n" +
     "13. no_cross_section_contamination: ¿No se asignó a un concepto información que el documento " +
-    "desarrolla bajo otro concepto o sección diferente?\n\n" +
-    "Para cada comparación, devolvé los 13 booleanos, approved (true si todos pasan), " +
+    "desarrolla bajo otro concepto o sección diferente?\n" +
+    "14. no_inverse_inference: ¿No se inventó el lado opuesto de una diferencia que la fuente solo " +
+    "desarrolla para un concepto? Las diferencias con requires_inverse_inference=true y el placeholder " +
+    "son CORRECTAS. Las que inventan un valor sin respaldo son INCORRECTAS.\n\n" +
+    "Para cada comparación, devolvé los 14 booleanos, approved (true si todos pasan), " +
     "y reason (explicación breve si no aprueba).\n\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${sourceText}\n</apunte>\n` +
@@ -1504,7 +1525,7 @@ export const compareValidationSchema: Record<string, unknown> = {
           "example_correct", "no_external_knowledge",
           "no_meaning_change", "no_invented_claims",
           "no_generic_filler", "source_sections_correct",
-          "no_cross_section_contamination",
+          "no_cross_section_contamination", "no_inverse_inference",
           "approved", "reason",
         ],
         properties: {
@@ -1522,6 +1543,7 @@ export const compareValidationSchema: Record<string, unknown> = {
           no_generic_filler: { type: "boolean" as const },
           source_sections_correct: { type: "boolean" as const },
           no_cross_section_contamination: { type: "boolean" as const },
+          no_inverse_inference: { type: "boolean" as const },
           approved: { type: "boolean" as const },
           reason: { type: "string" as const },
         },

@@ -6,6 +6,7 @@ export interface ComparisonDifference {
   source_b: string;
   source_section_a: string;
   source_section_b: string;
+  requires_inverse_inference: boolean;
 }
 
 export interface ComparisonSimilarity {
@@ -61,6 +62,10 @@ export function hasGenericSimilarity(sim: ComparisonSimilarity): boolean {
 }
 
 export function hasUnsourcedDifference(diff: ComparisonDifference): boolean {
+  if (diff.requires_inverse_inference) {
+    const hasAtLeastOneSide = diff.source_a.trim().length >= 10 || diff.source_b.trim().length >= 10;
+    return !hasAtLeastOneSide;
+  }
   return diff.source_a.trim().length < 10 || diff.source_b.trim().length < 10;
 }
 
@@ -151,6 +156,9 @@ export function validateComparison(c: Comparison): {
   for (const d of filteredDifferences) {
     if (hasCrossSectionContamination(d, c.concept_a, c.concept_b)) {
       addedWarnings.push(`Diferencia "${d.aspect}": verificar sección fuente (${d.source_section_a || "?"} / ${d.source_section_b || "?"}).`);
+    }
+    if (d.requires_inverse_inference) {
+      addedWarnings.push(`Diferencia "${d.aspect}": un lado no está desarrollado explícitamente en la fuente.`);
     }
   }
 

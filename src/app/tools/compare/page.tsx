@@ -14,6 +14,7 @@ interface ComparisonDifference {
   source_b: string;
   source_section_a: string;
   source_section_b: string;
+  requires_inverse_inference: boolean;
 }
 
 interface ComparisonSimilarity {
@@ -155,12 +156,12 @@ export default function ComparePage() {
                 {comp.differences.length > 0 && (
                   <div className="mb-4">
                     <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase mb-2">Diferencias</p>
-                    <div className="overflow-x-auto -mx-1">
-                      <table className="w-full text-sm border-collapse table-fixed">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border-collapse" style={{ tableLayout: "fixed" }}>
                         <colgroup>
-                          <col className="w-[20%]" />
-                          <col className="w-[40%]" />
-                          <col className="w-[40%]" />
+                          <col style={{ width: "20%" }} />
+                          <col style={{ width: "40%" }} />
+                          <col style={{ width: "40%" }} />
                         </colgroup>
                         <thead>
                           <tr className="border-b-2 border-gray-200 dark:border-gray-700">
@@ -170,29 +171,33 @@ export default function ComparePage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {comp.differences.map((d, j) => (
-                            <tr key={j} className={j < comp.differences.length - 1 ? "border-b border-gray-100 dark:border-gray-800" : ""}>
-                              <td className="py-3 px-3 text-gray-600 dark:text-gray-400 font-medium text-xs align-top">{d.aspect}</td>
-                              <td className="py-3 px-3 text-gray-700 dark:text-gray-300 text-sm align-top">
-                                <p>{d.concept_a_value}</p>
-                                {d.source_a && (
-                                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic break-words">&ldquo;{d.source_a}&rdquo;</p>
-                                )}
-                                {d.source_section_a && (
-                                  <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {d.source_section_a}</p>
-                                )}
-                              </td>
-                              <td className="py-3 px-3 text-gray-700 dark:text-gray-300 text-sm align-top">
-                                <p>{d.concept_b_value}</p>
-                                {d.source_b && (
-                                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic break-words">&ldquo;{d.source_b}&rdquo;</p>
-                                )}
-                                {d.source_section_b && (
-                                  <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {d.source_section_b}</p>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
+                          {comp.differences.map((d, j) => {
+                            const isPlaceholderA = d.concept_a_value.startsWith("[La fuente");
+                            const isPlaceholderB = d.concept_b_value.startsWith("[La fuente");
+                            return (
+                              <tr key={j} className={j < comp.differences.length - 1 ? "border-b border-gray-100 dark:border-gray-800" : ""}>
+                                <td className="py-3 px-3 text-gray-600 dark:text-gray-400 font-medium text-xs align-top">{d.aspect}</td>
+                                <td className="py-3 px-3 text-sm align-top min-w-0">
+                                  <p className={isPlaceholderA ? "text-gray-400 dark:text-gray-500 italic text-xs" : "text-gray-700 dark:text-gray-300"}>{d.concept_a_value}</p>
+                                  {d.source_a && !isPlaceholderA && (
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic break-words">&ldquo;{d.source_a}&rdquo;</p>
+                                  )}
+                                  {d.source_section_a && !isPlaceholderA && (
+                                    <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {d.source_section_a}</p>
+                                  )}
+                                </td>
+                                <td className="py-3 px-3 text-sm align-top min-w-0">
+                                  <p className={isPlaceholderB ? "text-gray-400 dark:text-gray-500 italic text-xs" : "text-gray-700 dark:text-gray-300"}>{d.concept_b_value}</p>
+                                  {d.source_b && !isPlaceholderB && (
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic break-words">&ldquo;{d.source_b}&rdquo;</p>
+                                  )}
+                                  {d.source_section_b && !isPlaceholderB && (
+                                    <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {d.source_section_b}</p>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
