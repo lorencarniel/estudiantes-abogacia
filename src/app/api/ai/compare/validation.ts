@@ -6,7 +6,6 @@ export interface ComparisonDifference {
   source_b: string;
   source_section_a: string;
   source_section_b: string;
-  requires_inverse_inference: boolean;
 }
 
 export interface ComparisonSimilarity {
@@ -23,6 +22,7 @@ export interface Comparison {
   definition_a: string;
   definition_b: string;
   differences: ComparisonDifference[];
+  mentioned_criteria: string[];
   similarities: ComparisonSimilarity[];
   articles: string;
   example: string;
@@ -38,6 +38,7 @@ export function validateComparisonSyntax(c: Comparison): boolean {
   if (typeof c.concept_a_supported !== "boolean") return false;
   if (typeof c.concept_b_supported !== "boolean") return false;
   if (!Array.isArray(c.differences)) return false;
+  if (!Array.isArray(c.mentioned_criteria)) return false;
   if (!Array.isArray(c.similarities)) return false;
   if (!Array.isArray(c.warnings)) return false;
   if (!["source", "didactic", "none"].includes(c.example_type)) return false;
@@ -62,15 +63,43 @@ export function hasGenericSimilarity(sim: ComparisonSimilarity): boolean {
 }
 
 export function hasUnsourcedDifference(diff: ComparisonDifference): boolean {
-  if (diff.requires_inverse_inference) {
-    const hasAtLeastOneSide = diff.source_a.trim().length >= 10 || diff.source_b.trim().length >= 10;
-    return !hasAtLeastOneSide;
-  }
   return diff.source_a.trim().length < 10 || diff.source_b.trim().length < 10;
 }
 
 export function hasUnsourcedSimilarity(sim: ComparisonSimilarity): boolean {
   return sim.source_fragment.trim().length < 10;
+}
+
+const INVERSE_PATTERNS = [
+  /\bno\s+(tienen?|poseen?|existen?|hay|cuenta[n]?\s+con|gozan?|puede[n]?)\b/i,
+  /\bcarece[n]?\s+de\b/i,
+  /\bausencia\s+de\b/i,
+  /\bsin\s+(derecho|facultad|poder|capacidad|órganos?)\b/i,
+  /\bmenor\s+(grado|nivel|medida)\b/i,
+];
+
+export function looksLikeInverseInference(
+  valueA: string,
+  valueB: string,
+  sourceA: string,
+  sourceB: string,
+): boolean {
+  const valA = valueA.trim().toLowerCase();
+  const valB = valueB.trim().toLowerCase();
+  const binaryValues = ["sí", "si", "no"];
+  if (binaryValues.includes(valA) || binaryValues.includes(valB)) {
+    return true;
+  }
+  const checkSide = (value: string, source: string): boolean => {
+    if (source.trim().length < 10) return false;
+    const valueLower = value.toLowerCase();
+    const sourceLower = source.toLowerCase();
+    if (INVERSE_PATTERNS.some((p) => p.test(valueLower)) && !INVERSE_PATTERNS.some((p) => p.test(sourceLower))) {
+      return true;
+    }
+    return false;
+  };
+  return checkSide(valueA, sourceA) || checkSide(valueB, sourceB);
 }
 
 function wordsShareRoot(a: string, b: string): boolean {
@@ -147,7 +176,7 @@ export function validateComparison(c: Comparison): {
 
   const filteredDifferences = c.differences.filter((d) => {
     if (hasUnsourcedDifference(d)) {
-      addedWarnings.push(`Diferencia "${d.aspect}" descartada por falta de respaldo textual.`);
+      addedWarnings.push(`Diferencia "${d.aspect}" descartada por falta de respaldo textual en ambos lados.`);
       return false;
     }
     return true;
@@ -157,8 +186,8 @@ export function validateComparison(c: Comparison): {
     if (hasCrossSectionContamination(d, c.concept_a, c.concept_b)) {
       addedWarnings.push(`Diferencia "${d.aspect}": verificar sección fuente (${d.source_section_a || "?"} / ${d.source_section_b || "?"}).`);
     }
-    if (d.requires_inverse_inference) {
-      addedWarnings.push(`Diferencia "${d.aspect}": un lado no está desarrollado explícitamente en la fuente.`);
+    if (looksLikeInverseInference(d.concept_a_value, d.concept_b_value, d.source_a, d.source_b)) {
+      addedWarnings.push(`Diferencia "${d.aspect}": posible inferencia inversa. Verificar que ambos lados estén explícitos en la fuente.`);
     }
   }
 

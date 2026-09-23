@@ -64,6 +64,7 @@ export async function POST(request: Request) {
     const cleanJsonArtifacts = (s: string) => s.replace(/[{}\[\]],?\s*$/g, "").trim();
     const validatedComparisons: Comparison[] = [];
     for (const comp of content.comparisons) {
+      if (!comp.mentioned_criteria) comp.mentioned_criteria = [];
       if (!validateComparisonSyntax(comp)) continue;
 
       for (const d of comp.differences) {

@@ -7,6 +7,7 @@ import {
   hasUnsourcedSimilarity,
   hasCrossSectionContamination,
   hasGenericDefinition,
+  looksLikeInverseInference,
   type Comparison,
   type ComparisonDifference,
   type ComparisonSimilarity,
@@ -29,9 +30,9 @@ function makeComparison(overrides: Partial<Comparison> = {}): Comparison {
         source_b: "La confederación se origina en un pacto entre Estados soberanos",
         source_section_a: "Federación",
         source_section_b: "Confederación",
-        requires_inverse_inference: false,
       },
     ],
+    mentioned_criteria: [],
     similarities: [
       {
         statement: "Ambas son formas de organización estatal compuesta.",
@@ -56,7 +57,6 @@ function makeDifference(overrides: Partial<ComparisonDifference> = {}): Comparis
     source_b: "La confederación se origina en un pacto entre Estados soberanos",
     source_section_a: "Federación",
     source_section_b: "Confederación",
-    requires_inverse_inference: false,
     ...overrides,
   };
 }
@@ -238,40 +238,76 @@ describe("contaminación cross-sección", () => {
   });
 });
 
-// ── Test 7b: Inferencia inversa ──
+// ── Test 7b: Detección de inferencia inversa ──
 describe("inferencia inversa", () => {
-  it("no filtra diferencia con requires_inverse_inference si un lado tiene source", () => {
-    const diff = makeDifference({
-      concept_b_value: "[La fuente no desarrolla explícitamente este aspecto]",
-      source_b: "",
-      requires_inverse_inference: true,
-    });
-    expect(hasUnsourcedDifference(diff)).toBe(false);
+  it("detecta valor negativo no respaldado por la fuente", () => {
+    expect(looksLikeInverseInference(
+      "Tiene órganos centrales",
+      "No tiene órganos centrales",
+      "existencia de órganos centrales en el Estado Federal",
+      "la confederación es una unión de estados soberanos",
+    )).toBe(true);
   });
 
-  it("filtra diferencia con requires_inverse_inference si ningún lado tiene source", () => {
-    const diff = makeDifference({
-      source_a: "",
-      source_b: "",
-      requires_inverse_inference: true,
-    });
-    expect(hasUnsourcedDifference(diff)).toBe(true);
+  it("detecta 'carece de' como inferencia inversa", () => {
+    expect(looksLikeInverseInference(
+      "Tiene derecho de secesión",
+      "Carece de derecho de secesión",
+      "los estados confederados retienen el derecho de secesión",
+      "la federación se basa en una constitución",
+    )).toBe(true);
   });
 
-  it("genera warning para diferencia con inferencia inversa", () => {
+  it("detecta 'menor grado' como inferencia de 'mayor grado'", () => {
+    expect(looksLikeInverseInference(
+      "Menor grado de descentralización",
+      "Mayor grado de descentralización",
+      "la federación divide el poder en el territorio",
+      "mayor grado de descentralización del poder territorial",
+    )).toBe(true);
+  });
+
+  it("detecta valores binarios sí/no como inferencia", () => {
+    expect(looksLikeInverseInference(
+      "sí",
+      "no",
+      "El gobierno central tiene imperium sobre todo el territorio",
+      "Los Estados confederados conservan su plena soberanía",
+    )).toBe(true);
+  });
+
+  it("no marca como inferencia cuando ambos lados están respaldados", () => {
+    expect(looksLikeInverseInference(
+      "Constitución",
+      "Pacto",
+      "La federación se basa en una constitución como norma suprema",
+      "La confederación se origina en un pacto entre Estados soberanos",
+    )).toBe(false);
+  });
+
+  it("no marca cuando la negación aparece en la fuente", () => {
+    expect(looksLikeInverseInference(
+      "No tienen derecho de secesión",
+      "Retienen derecho de secesión",
+      "Los estados miembros no pueden separarse unilateralmente (no tienen derecho de secesión)",
+      "Los estados confederados retienen el derecho de secesión",
+    )).toBe(false);
+  });
+
+  it("genera warning para diferencia con posible inferencia inversa", () => {
     const comp = makeComparison({
       differences: [
         makeDifference({
           aspect: "Órganos centrales",
-          concept_b_value: "[La fuente no desarrolla explícitamente este aspecto]",
-          source_b: "",
-          requires_inverse_inference: true,
+          concept_a_value: "Existen órganos centrales",
+          concept_b_value: "No existen órganos centrales",
+          source_a: "existencia de órganos centrales en el Estado Federal",
+          source_b: "la confederación es una unión de estados soberanos",
         }),
       ],
     });
     const result = validateComparison(comp);
-    expect(result.filteredDifferences).toHaveLength(1);
-    expect(result.addedWarnings.some((w) => w.includes("no está desarrollado explícitamente"))).toBe(true);
+    expect(result.addedWarnings.some((w) => w.includes("posible inferencia inversa"))).toBe(true);
   });
 });
 
@@ -321,5 +357,16 @@ describe("secciones artificiales", () => {
     const result = validateComparison(comp);
     expect(result.filteredDifferences).toHaveLength(0);
     expect(result.valid).toBe(false);
+  });
+
+  it("acepta comparación con mentioned_criteria", () => {
+    const comp = makeComparison({
+      mentioned_criteria: [
+        "existencia de órganos centrales",
+        "imperium sobre los Estados y sus habitantes",
+      ],
+    });
+    expect(validateComparisonSyntax(comp)).toBe(true);
+    expect(comp.mentioned_criteria).toHaveLength(2);
   });
 });

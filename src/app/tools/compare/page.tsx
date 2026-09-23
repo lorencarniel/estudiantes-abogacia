@@ -14,7 +14,6 @@ interface ComparisonDifference {
   source_b: string;
   source_section_a: string;
   source_section_b: string;
-  requires_inverse_inference: boolean;
 }
 
 interface ComparisonSimilarity {
@@ -31,6 +30,7 @@ interface Comparison {
   definition_a: string;
   definition_b: string;
   differences: ComparisonDifference[];
+  mentioned_criteria?: string[];
   similarities: ComparisonSimilarity[];
   articles: string;
   example: string;
@@ -155,8 +155,8 @@ export default function ComparePage() {
                 {/* Differences table */}
                 {comp.differences.length > 0 && (
                   <div className="mb-4">
-                    <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase mb-2">Diferencias</p>
-                    <div className="overflow-x-auto">
+                    <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase mb-2">Diferencias respaldadas</p>
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                       <table className="w-full text-sm border-collapse" style={{ tableLayout: "fixed" }}>
                         <colgroup>
                           <col style={{ width: "20%" }} />
@@ -164,43 +164,59 @@ export default function ComparePage() {
                           <col style={{ width: "40%" }} />
                         </colgroup>
                         <thead>
-                          <tr className="border-b-2 border-gray-200 dark:border-gray-700">
+                          <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
                             <th className="text-left py-2 px-3 text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase">Aspecto</th>
                             <th className="text-left py-2 px-3 text-primary-600 dark:text-primary-400 font-semibold text-xs uppercase">{comp.concept_a}</th>
                             <th className="text-left py-2 px-3 text-indigo-600 dark:text-indigo-400 font-semibold text-xs uppercase">{comp.concept_b}</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {comp.differences.map((d, j) => {
-                            const isPlaceholderA = d.concept_a_value.startsWith("[La fuente");
-                            const isPlaceholderB = d.concept_b_value.startsWith("[La fuente");
-                            return (
-                              <tr key={j} className={j < comp.differences.length - 1 ? "border-b border-gray-100 dark:border-gray-800" : ""}>
-                                <td className="py-3 px-3 text-gray-600 dark:text-gray-400 font-medium text-xs align-top">{d.aspect}</td>
-                                <td className="py-3 px-3 text-sm align-top min-w-0">
-                                  <p className={isPlaceholderA ? "text-gray-400 dark:text-gray-500 italic text-xs" : "text-gray-700 dark:text-gray-300"}>{d.concept_a_value}</p>
-                                  {d.source_a && !isPlaceholderA && (
-                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic break-words">&ldquo;{d.source_a}&rdquo;</p>
-                                  )}
-                                  {d.source_section_a && !isPlaceholderA && (
-                                    <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {d.source_section_a}</p>
-                                  )}
-                                </td>
-                                <td className="py-3 px-3 text-sm align-top min-w-0">
-                                  <p className={isPlaceholderB ? "text-gray-400 dark:text-gray-500 italic text-xs" : "text-gray-700 dark:text-gray-300"}>{d.concept_b_value}</p>
-                                  {d.source_b && !isPlaceholderB && (
-                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic break-words">&ldquo;{d.source_b}&rdquo;</p>
-                                  )}
-                                  {d.source_section_b && !isPlaceholderB && (
-                                    <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {d.source_section_b}</p>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
+                          {comp.differences.map((d, j) => (
+                            <tr key={j} className={j < comp.differences.length - 1 ? "border-b border-gray-100 dark:border-gray-800" : ""}>
+                              <td className="py-3 px-3 text-gray-600 dark:text-gray-400 font-medium text-xs align-top">{d.aspect}</td>
+                              <td className="py-3 px-3 text-gray-700 dark:text-gray-300 text-sm align-top">
+                                <p>{d.concept_a_value}</p>
+                                {d.source_a && (
+                                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic break-words">&ldquo;{d.source_a}&rdquo;</p>
+                                )}
+                                {d.source_section_a && (
+                                  <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {d.source_section_a}</p>
+                                )}
+                              </td>
+                              <td className="py-3 px-3 text-gray-700 dark:text-gray-300 text-sm align-top">
+                                <p>{d.concept_b_value}</p>
+                                {d.source_b && (
+                                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic break-words">&ldquo;{d.source_b}&rdquo;</p>
+                                )}
+                                {d.source_section_b && (
+                                  <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {d.source_section_b}</p>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
+                  </div>
+                )}
+
+                {/* Mentioned criteria */}
+                {comp.mentioned_criteria && comp.mentioned_criteria.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase mb-2">
+                      Otros criterios mencionados por la fuente
+                    </p>
+                    <ul className="space-y-1 pl-1">
+                      {comp.mentioned_criteria.map((c, j) => (
+                        <li key={j} className="text-sm text-gray-600 dark:text-gray-400 flex gap-2">
+                          <span className="text-orange-400 shrink-0">&bull;</span>
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-1.5 italic">
+                      La fuente menciona estos criterios pero no asigna expl&iacute;citamente un valor a cada concepto.
+                    </p>
                   </div>
                 )}
 

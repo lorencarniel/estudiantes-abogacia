@@ -1324,7 +1324,8 @@ export function compareConceptsPrompt(text: string, syllabus?: string): string {
   return (
     `${BASE_RULES} ` +
     "Identificá en el apunte pares de conceptos jurídicos que se prestan a confusión o que es útil comparar. " +
-    "Generá entre 2 y 4 comparaciones.\n\n" +
+    "Generá entre 1 y 4 comparaciones. NO generes múltiples comparaciones para el mismo par de conceptos: " +
+    "agrupá todas las diferencias de un par en UNA sola comparación.\n\n" +
     "REGLAS OBLIGATORIAS:\n\n" +
     "1. SOURCE GROUNDING: Toda afirmación (definición, diferencia, semejanza, normativa, ejemplo) " +
     "debe estar respaldada por el texto del apunte. No uses conocimiento general del modelo para " +
@@ -1333,60 +1334,59 @@ export function compareConceptsPrompt(text: string, syllabus?: string): string {
     "desarrollado en el material. Un concepto está 'desarrollado' cuando la fuente lo define, " +
     "enumera características o lo describe con detalle propio. Si solo se MENCIONA de pasada " +
     "(ej: aparece en una enumeración o como referencia), marcá concept_X_supported = false. " +
-    "Si NINGUNO de los dos conceptos está desarrollado, NO generes la comparación: " +
-    "devolvé un objeto con ambos supported=false, differences y similarities vacíos, y un " +
-    "warning: 'Comparación limitada: el material identifica ambos conceptos pero no aporta " +
-    "información suficiente para compararlos en detalle.' " +
-    "No inventes definiciones a partir del nombre del concepto.\n\n" +
-    "3. DIFERENCIAS RESPALDADAS: Una diferencia solo puede incluirse cuando la fuente establece " +
-    "un atributo para el Concepto A Y un atributo diferente o contrapuesto para el Concepto B. " +
-    "No inferir diferencias que el material no establece. Cada diferencia debe incluir el " +
-    "fragmento fuente que la respalda (source_a y source_b) y la sección del documento de " +
-    "donde se extrajo (source_section_a y source_section_b).\n\n" +
+    "Si NINGUNO de los dos conceptos está desarrollado, NO generes la comparación.\n\n" +
+    "3. DIFERENCIAS RESPALDADAS — SOLO ASIGNACIÓN EXPLÍCITA: Una diferencia solo puede " +
+    "incluirse en la tabla cuando la fuente asigna EXPLÍCITAMENTE un valor diferente a CADA " +
+    "uno de los dos conceptos. Ambos lados deben tener fragmento fuente directo.\n\n" +
+    "EJEMPLOS DE LO QUE NO SE DEBE HACER:\n" +
+    "- Fuente dice 'A tiene mayor X' → NO inferir 'B tiene menor X'\n" +
+    "- Fuente lista 'existencia de órganos centrales' como criterio → NO inferir A=sí / B=no\n" +
+    "- Fuente dice 'derecho de nulificación y secesión' → NO inferir A=no / B=sí " +
+    "salvo que el material asigne explícitamente cada lado\n" +
+    "- Fuente dice 'autonomía y soberanía' como criterio → NO separar como A=autonomía / B=soberanía " +
+    "salvo que la fuente haga esa asignación de forma directa\n" +
+    "- NUNCA usar 'sí' o 'no' como valores de diferencia. Describir el atributo concreto según la fuente. " +
+    "Ej: no poner 'sí' / 'no' para imperium, sino 'tiene imperium sobre el territorio' con cita textual.\n\n" +
+    "Si la fuente menciona un criterio de diferenciación pero NO asigna explícitamente un valor " +
+    "a cada concepto, ese criterio va en el array mentioned_criteria, NO en la tabla de diferencias.\n\n" +
     "4. ATRIBUCIÓN POR SECCIÓN: Cada fragmento fuente debe provenir de la sección del documento " +
     "que efectivamente trata ese concepto. NO tomar contenido de una sección sobre un tema " +
-    "diferente (ej: 'Estados regionales') y asignarlo a otro concepto (ej: 'Confederación') " +
-    "solo porque parece relacionado semánticamente. source_section debe ser el título o " +
-    "encabezado de la sección real del apunte donde aparece el fragmento.\n\n" +
-    "5. SEMEJANZAS CONCRETAS: No generar semejanzas genéricas como 'ambos buscan el buen " +
-    "funcionamiento del Estado' o 'ambos son importantes para la organización política'. " +
-    "Las semejanzas deben ser atributos concretos compartidos según la fuente. Si no hay " +
-    "semejanzas explícitas o razonablemente demostrables, devolvé el array vacío.\n\n" +
-    "6. DEFINICIONES FIELES: Si la fuente define el concepto, usá esa definición o una " +
-    "reformulación fiel. Si solo lo menciona sin definirlo, poné en la definición: " +
-    "'El material menciona este concepto pero no proporciona una definición.' " +
-    "No fabricar definiciones a partir del nombre. No usar frases genéricas como " +
-    "'es la rama del derecho que…' o 'el pueblo ejerce el poder…' si no son textuales.\n\n" +
-    "7. NORMATIVA VINCULADA: La sección de normativa aparece SOLO cuando la fuente vincula " +
-    "explícitamente una norma, artículo o ley con el concepto. No asignar artículos por " +
-    "conocimiento externo. Distinguir 'El material vincula este concepto con el art. X' " +
-    "de 'El art. X establece…'. Si no hay normativa vinculada, devolvé string vacío.\n\n" +
-    "8. EJEMPLOS: Si el apunte aporta un ejemplo, usalo y marcá example_type como 'source'. " +
-    "Si el apunte no aporta ejemplo, podés generar uno didáctico SOLO si no contradice el " +
-    "material, y marcá example_type como 'didactic'. Nunca mezclar ambos tipos. " +
-    "Nunca usar ejemplos factuales externos sin verificar (ej: 'Suiza es una confederación'). " +
-    "Si no hay ejemplo de la fuente y no podés generar uno seguro, dejá example vacío.\n\n" +
-    "9. TERMINOLOGÍA JURÍDICA: No reemplazar términos jurídicos por expresiones aproximadas. " +
-    "Si la fuente dice 'imperium sobre los Estados', no convertirlo en 'el gobierno central " +
-    "puede legislar sobre los Estados'. Usá la terminología exacta de la fuente.\n\n" +
-    "10. NO INFERIR EL OPUESTO: Cuando la fuente desarrolla un atributo solo para uno de los " +
-    "dos conceptos (ej: 'la federación tiene órganos centrales') pero NO dice explícitamente " +
-    "lo opuesto para el otro concepto, NO inferir el valor contrario. En ese caso:\n" +
-    "- Poné como valor del lado no desarrollado: '[La fuente no desarrolla explícitamente este aspecto]'\n" +
-    "- Dejá el source correspondiente como string vacío\n" +
-    "- Marcá requires_inverse_inference: true en esa diferencia\n" +
-    "Es preferible una tabla parcialmente incompleta pero fiel, que una tabla completa con inferencias.\n\n" +
+    "diferente y asignarlo a otro concepto. NO mezclar fragmentos de secciones diferentes " +
+    "para construir una diferencia. source_section debe ser el título o encabezado de la " +
+    "sección real del apunte donde aparece el fragmento.\n\n" +
+    "5. SEMEJANZAS CONCRETAS: No generar semejanzas genéricas. Las semejanzas deben ser " +
+    "atributos concretos compartidos según la fuente. Buscar la sección correcta: si el " +
+    "material agrupa ambos conceptos bajo una categoría (ej: 'formas descentralizadas'), " +
+    "esa es la semejanza respaldada. Si no hay semejanzas explícitas, devolvé el array vacío.\n\n" +
+    "6. DEFINICIONES FIELES: Usá la definición de la fuente o una reformulación fiel. " +
+    "No agregar atributos que la fuente no incluye en la definición. " +
+    "Si la fuente dice 'mayor grado de descentralización del poder territorial', " +
+    "NO reformular como 'mayor autonomía'. Usá las palabras exactas de la fuente. " +
+    "Si solo lo menciona sin definirlo, poné: " +
+    "'El material menciona este concepto pero no proporciona una definición.'\n\n" +
+    "7. NORMATIVA VINCULADA: Solo cuando la fuente vincula explícitamente una norma. " +
+    "Si no hay, devolvé string vacío.\n\n" +
+    "8. EJEMPLOS: Si el apunte aporta un ejemplo, usalo (example_type='source'). " +
+    "Si no, podés generar uno didáctico que no contradiga el material (example_type='didactic'). " +
+    "Si no hay ejemplo seguro, dejá example vacío y example_type='none'.\n\n" +
+    "9. TERMINOLOGÍA JURÍDICA: Usá la terminología exacta de la fuente. " +
+    "No reemplazar términos jurídicos por expresiones aproximadas.\n\n" +
+    "10. CRITERIOS MENCIONADOS SIN ASIGNACIÓN: Cuando la fuente menciona un criterio de " +
+    "diferenciación (ej: 'existencia de órganos centrales', 'imperium', 'derecho de nulificación') " +
+    "pero NO desarrolla explícitamente qué valor tiene cada concepto para ese criterio, " +
+    "ese criterio va en el array mentioned_criteria con el texto exacto de la fuente. " +
+    "NO intentar completar la tabla con inferencias sobre estos criterios.\n\n" +
     "ESTRUCTURA POR COMPARACIÓN:\n" +
     "- concept_a, concept_b: nombres cortos\n" +
     "- concept_a_supported, concept_b_supported: si el concepto está suficientemente desarrollado\n" +
-    "- definition_a, definition_b: definición según la fuente (o aviso si no hay)\n" +
-    "- differences: array de {aspect, concept_a_value, concept_b_value, source_a, source_b, source_section_a, source_section_b, requires_inverse_inference}\n" +
-    "  - requires_inverse_inference: true cuando uno de los dos lados fue completado con el placeholder porque la fuente no lo desarrolla\n" +
-    "- similarities: array de {statement, source_fragment, source_section} — vacío si no hay respaldadas\n" +
+    "- definition_a, definition_b: definición textual de la fuente\n" +
+    "- differences: SOLO diferencias con asignación explícita para ambos lados\n" +
+    "  Cada item: {aspect, concept_a_value, concept_b_value, source_a, source_b, source_section_a, source_section_b}\n" +
+    "- mentioned_criteria: array de strings con criterios que la fuente menciona como " +
+    "diferenciadores pero sin asignar explícitamente un valor a cada concepto\n" +
+    "- similarities: array de {statement, source_fragment, source_section} — vacío si no hay\n" +
     "- articles: normativa vinculada explícitamente — vacío si no hay\n" +
-    "- example: texto del ejemplo — vacío si no hay\n" +
-    "- example_type: 'source' | 'didactic' | 'none'\n" +
-    "- warnings: array de strings con avisos de cobertura parcial\n\n" +
+    "- example, example_type, warnings\n\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
@@ -1408,7 +1408,7 @@ export const compareConceptsSchema: Record<string, unknown> = {
           "concept_a", "concept_b",
           "concept_a_supported", "concept_b_supported",
           "definition_a", "definition_b",
-          "differences", "similarities",
+          "differences", "mentioned_criteria", "similarities",
           "articles", "example", "example_type", "warnings",
         ],
         properties: {
@@ -1423,7 +1423,7 @@ export const compareConceptsSchema: Record<string, unknown> = {
             items: {
               type: "object" as const,
               additionalProperties: false,
-              required: ["aspect", "concept_a_value", "concept_b_value", "source_a", "source_b", "source_section_a", "source_section_b", "requires_inverse_inference"],
+              required: ["aspect", "concept_a_value", "concept_b_value", "source_a", "source_b", "source_section_a", "source_section_b"],
               properties: {
                 aspect: { type: "string" as const },
                 concept_a_value: { type: "string" as const },
@@ -1432,9 +1432,12 @@ export const compareConceptsSchema: Record<string, unknown> = {
                 source_b: { type: "string" as const },
                 source_section_a: { type: "string" as const },
                 source_section_b: { type: "string" as const },
-                requires_inverse_inference: { type: "boolean" as const },
               },
             },
+          },
+          mentioned_criteria: {
+            type: "array" as const,
+            items: { type: "string" as const },
           },
           similarities: {
             type: "array" as const,
@@ -1468,37 +1471,33 @@ export function compareValidationPrompt(
     "Sos un verificador independiente de comparaciones de conceptos jurídicos para estudio universitario.\n\n" +
     "Recibís el material fuente y un conjunto de comparaciones generadas. " +
     "Para CADA comparación, verificá los siguientes criterios:\n\n" +
-    "IMPORTANTE: Una comparación NO necesita tener ejemplo práctico, normativa, artículos ni semejanzas " +
+    "IMPORTANTE: Una comparación NO necesita tener ejemplo, normativa, artículos ni semejanzas " +
     "si la fuente no los contiene. NO penalices la ausencia de estas secciones. " +
-    "Evaluá ÚNICAMENTE: fidelidad al material, suficiente respaldo textual, correcta asignación de conceptos, " +
-    "ausencia de conocimiento externo y ausencia de inferencias no respaldadas.\n\n" +
-    "1. concept_a_supported: ¿El concepto A está suficientemente desarrollado en la fuente (no solo mencionado)?\n" +
-    "2. concept_b_supported: ¿El concepto B está suficientemente desarrollado en la fuente (no solo mencionado)?\n" +
-    "3. definitions_supported: ¿Las definiciones reflejan fielmente la fuente? Una definición que usa " +
-    "frases genéricas como 'es la rama que…' o 'el pueblo ejerce…' sin que eso aparezca en el material " +
-    "debe marcarse como false.\n" +
-    "4. differences_supported: ¿Cada diferencia tiene respaldo textual? Si una diferencia marca " +
-    "requires_inverse_inference=true y usa el placeholder '[La fuente no desarrolla explícitamente este aspecto]', " +
-    "eso es CORRECTO — no penalizar. Solo penalizar diferencias que inventan un valor sin respaldo.\n" +
-    "5. similarities_supported: ¿Cada semejanza es concreta y respaldada (no genérica inventada)? " +
-    "Si el array de semejanzas está vacío, eso es CORRECTO — no penalizar.\n" +
-    "6. normative_supported: ¿La normativa citada está vinculada explícitamente en la fuente? " +
-    "Si no hay normativa (string vacío), eso es CORRECTO — no penalizar.\n" +
-    "7. example_correct: ¿El ejemplo es fiel a la fuente o no contradice el material? " +
-    "Si no hay ejemplo, eso es CORRECTO — no penalizar.\n" +
-    "8. no_external_knowledge: ¿No se usó conocimiento general del LLM para definir, diferenciar o " +
-    "ejemplificar conceptos que la fuente no desarrolla?\n" +
+    "Evaluá ÚNICAMENTE: fidelidad al material, respaldo textual directo, correcta asignación " +
+    "de conceptos, ausencia de conocimiento externo y ausencia de inferencias.\n\n" +
+    "1. concept_a_supported: ¿El concepto A está suficientemente desarrollado en la fuente?\n" +
+    "2. concept_b_supported: ¿El concepto B está suficientemente desarrollado en la fuente?\n" +
+    "3. definitions_supported: ¿Las definiciones reflejan fielmente la fuente? No deben agregar " +
+    "atributos que la fuente no incluye en la definición del concepto.\n" +
+    "4. differences_supported: ¿Cada diferencia tiene fragmento fuente directo para AMBOS lados? " +
+    "Ambos source_a y source_b deben ser citas textuales del material.\n" +
+    "5. similarities_supported: ¿Cada semejanza es concreta y respaldada? Array vacío es CORRECTO.\n" +
+    "6. normative_supported: ¿La normativa está vinculada en la fuente? String vacío es CORRECTO.\n" +
+    "7. example_correct: ¿El ejemplo es fiel? Sin ejemplo es CORRECTO.\n" +
+    "8. no_external_knowledge: ¿No se usó conocimiento externo al material?\n" +
     "9. no_meaning_change: ¿No se alteró el significado de términos jurídicos?\n" +
     "10. no_invented_claims: ¿No hay afirmaciones fabricadas?\n" +
-    "11. no_generic_filler: ¿No hay contenido genérico solo para llenar la UI?\n" +
-    "12. source_sections_correct: ¿Cada source_section corresponde a la sección real del documento " +
-    "donde se trata ESE concepto? No debe haber contenido tomado de una sección sobre otro tema " +
-    "(ej: tomar datos de 'Estados regionales' y asignarlos a 'Confederación').\n" +
-    "13. no_cross_section_contamination: ¿No se asignó a un concepto información que el documento " +
-    "desarrolla bajo otro concepto o sección diferente?\n" +
-    "14. no_inverse_inference: ¿No se inventó el lado opuesto de una diferencia que la fuente solo " +
-    "desarrolla para un concepto? Las diferencias con requires_inverse_inference=true y el placeholder " +
-    "son CORRECTAS. Las que inventan un valor sin respaldo son INCORRECTAS.\n\n" +
+    "11. no_generic_filler: ¿No hay contenido genérico para llenar la UI?\n" +
+    "12. source_sections_correct: ¿Cada source_section es la sección real del documento?\n" +
+    "13. no_cross_section_contamination: ¿No se mezcló contenido de secciones diferentes?\n" +
+    "14. no_inverse_inference: ¿No se infirió el opuesto de una afirmación? " +
+    "Ejemplos de inferencia inversa que deben rechazarse:\n" +
+    "- Fuente dice 'A tiene mayor X' → se infirió 'B tiene menor X'\n" +
+    "- Fuente lista un criterio sin asignar valores → se asignó A=sí / B=no\n" +
+    "- Fuente menciona un atributo para un solo concepto → se inventó el opuesto para el otro\n" +
+    "- Fuente dice 'autonomía y soberanía' como criterio → se separó como A=uno / B=otro " +
+    "sin que la fuente haga esa asignación directa\n" +
+    "Si detectás cualquiera de estos patrones, no_inverse_inference = false.\n\n" +
     "Para cada comparación, devolvé los 14 booleanos, approved (true si todos pasan), " +
     "y reason (explicación breve si no aprueba).\n\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
