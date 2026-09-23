@@ -61,9 +61,18 @@ export async function POST(request: Request) {
     });
 
     // STEP 2: Programmatic validation — filter unsourced content
+    const cleanJsonArtifacts = (s: string) => s.replace(/[{}\[\]],?\s*$/g, "").trim();
     const validatedComparisons: Comparison[] = [];
     for (const comp of content.comparisons) {
       if (!validateComparisonSyntax(comp)) continue;
+
+      for (const d of comp.differences) {
+        d.source_section_a = cleanJsonArtifacts(d.source_section_a);
+        d.source_section_b = cleanJsonArtifacts(d.source_section_b);
+      }
+      for (const s of comp.similarities) {
+        s.source_section = cleanJsonArtifacts(s.source_section);
+      }
 
       const result = validateComparison(comp);
       validatedComparisons.push({
