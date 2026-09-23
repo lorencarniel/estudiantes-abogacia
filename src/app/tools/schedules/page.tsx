@@ -245,7 +245,7 @@ export default function SchedulesPage() {
         <div className="flex items-start justify-between gap-4 mb-2">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{viewSchedule.title}</h1>
           <span className="text-sm text-gray-500 shrink-0">
-            Examen: {new Date(viewSchedule.examDate).toLocaleDateString("es-AR")}
+            Examen: {new Date(String(viewSchedule.examDate).slice(0, 10) + "T12:00:00").toLocaleDateString("es-AR")}
           </span>
         </div>
 

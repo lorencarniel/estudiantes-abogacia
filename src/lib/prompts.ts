@@ -38,11 +38,15 @@ export function summaryPrompt(text: string, level: "corto" | "mediano" | "detall
 
   return (
     `${BASE_RULES} ` +
-    "Generá un resumen basado exclusivamente en el apunte. " +
-    `${guidance} ` +
-    "Resaltá los conceptos clave poniéndolos en **negrita**. " +
-    "Usá subtítulos con ## si el resumen lo amerita. " +
-    "Si el material menciona artículos, plazos o requisitos, incluílos textualmente. " +
+    "Generá un resumen NARRATIVO basado exclusivamente en el apunte. " +
+    `${guidance}\n\n` +
+    "ESTRUCTURA DEL JSON:\n" +
+    "- El campo 'summary' debe contener TODO el resumen como texto narrativo continuo, con párrafos desarrollados. " +
+    "Usá subtítulos con ## para organizar las secciones. Resaltá conceptos clave con **negrita**. " +
+    "Este campo es el contenido principal: debe ser un resumen completo, NO una introducción ni un índice.\n" +
+    "- El campo 'key_concepts' es un COMPLEMENTO breve: solo 3-5 términos técnicos importantes con definiciones cortas (una oración). " +
+    "NO dupliques aquí lo que ya está en el resumen. NO uses key_concepts como el contenido principal.\n\n" +
+    "Si el material menciona artículos, plazos o requisitos, incluílos textualmente en el resumen. " +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
@@ -728,6 +732,53 @@ export const quizSchema = {
   },
 };
 
+export function quizValidationPrompt(
+  text: string,
+  questions: Array<{ statement: string; options: string[]; correct_index: number; explanation: string; reference: string }>
+): string {
+  const questionsBlock = questions
+    .map(
+      (q, i) =>
+        `[Pregunta ${i + 1}]\nEnunciado: ${q.statement}\nOpciones: ${q.options.map((o, j) => `${j}) ${o}`).join(" | ")}\nRespuesta marcada: opción ${q.correct_index}\nReferencia citada: ${q.reference}`
+    )
+    .join("\n\n");
+
+  return (
+    "Sos un verificador de calidad de preguntas de examen universitario de derecho argentino.\n\n" +
+    "Te doy un apunte y un conjunto de preguntas generadas a partir de ese apunte. " +
+    "Para CADA pregunta, verificá:\n" +
+    "1. REFERENCIA PRESENTE: ¿La referencia citada aparece textualmente o como paráfrasis fiel en el apunte? Si cita un artículo, ¿el apunte menciona ese artículo?\n" +
+    "2. REFERENCIA RESPALDA: ¿La referencia citada REALMENTE justifica que la opción marcada sea correcta? No basta con que sea del mismo tema.\n" +
+    "3. UNA SOLA CORRECTA: ¿Hay exactamente una opción defendible bajo el enunciado? Si dos o más opciones podrían ser correctas, marcá como inválida.\n" +
+    "4. CONSISTENCIA: ¿Coinciden jurisdicción, nivel normativo, fecha y concepto entre enunciado, opciones y referencia?\n" +
+    "5. DATOS NO INVENTADOS: ¿La pregunta atribuye información que NO está en el apunte (fechas, artículos, consecuencias)?\n\n" +
+    "Para cada pregunta, respondé con valid: true si pasa las 5 verificaciones, o valid: false con el motivo.\n\n" +
+    `<apunte>\n${text}\n</apunte>\n\n` +
+    `<preguntas>\n${questionsBlock}\n</preguntas>`
+  );
+}
+
+export const quizValidationSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["results"],
+  properties: {
+    results: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["question_index", "valid", "reason"],
+        properties: {
+          question_index: { type: "integer" as const },
+          valid: { type: "boolean" as const },
+          reason: { type: "string" as const },
+        },
+      },
+    },
+  },
+};
+
 export function matchingGamePrompt(text: string, examType?: ExamType, syllabus?: string): string {
   const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
   return (
@@ -1305,7 +1356,14 @@ export function practicalCasePrompt(text: string, examType?: ExamType, syllabus?
     "- Tener un relato de hechos concreto con nombres ficticios y situaciones realistas\n" +
     "- Involucrar al menos 2-3 conceptos jurídicos del material\n" +
     "- Incluir 3-4 preguntas guía para que el alumno analice el caso\n" +
-    "- Tener una resolución modelo con fundamento en la normativa del apunte\n" +
+    "- Tener una resolución modelo con fundamento en la normativa del apunte\n\n" +
+    "PROHIBICIONES:\n" +
+    "- NO preguntes por artículos, leyes o normas específicas que NO estén en el apunte. " +
+    "Si el material habla de derecho constitucional sin citar la constitución provincial, NO pidas citar un artículo provincial.\n" +
+    "- NO exijas al alumno aplicar normativa que el material no proporciona. " +
+    "Las preguntas guía deben ser resolubles con la información del apunte.\n" +
+    "- NO mezcles niveles normativos (nacional, provincial, municipal) si el material solo trata uno.\n" +
+    "- La resolución modelo debe fundamentarse SOLO en lo que dice el apunte, no en conocimiento externo.\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
@@ -1344,7 +1402,9 @@ export function evaluateCasePrompt(
     "- Listar errores o conceptos mal aplicados\n" +
     "- Listar conceptos que omitió\n" +
     "- Dar un comentario general con sugerencias\n" +
-    "Basate exclusivamente en el apunte.\n" +
+    "Basate exclusivamente en el apunte. " +
+    "NO penalices al alumno por no citar normas, artículos o leyes que NO están en el material proporcionado. " +
+    "Si el alumno dice que el material no contiene una norma específica y tiene razón, eso es un acierto, no un error.\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${sourceText}\n</apunte>`
   );
@@ -1368,13 +1428,26 @@ export const evaluateCaseSchema: Record<string, unknown> = {
 export function mnemonicPrompt(text: string): string {
   return (
     `${BASE_RULES} ` +
-    "Generá reglas mnemotécnicas para memorizar los conceptos más difíciles del apunte. " +
-    "Para cada concepto, generá al menos un recurso mnemotécnico usando estas técnicas:\n" +
+    "Generá reglas mnemotécnicas para memorizar las enumeraciones y conceptos más difíciles del apunte.\n\n" +
+    "TÉCNICAS DISPONIBLES:\n" +
     "- Acrónimos (primera letra de cada elemento)\n" +
     "- Frases memorables o rimas\n" +
     "- Asociaciones visuales\n" +
-    "- Historias cortas que conecten los conceptos\n" +
-    "Generá entre 5 y 8 mnemotécnicos, priorizando los conceptos más complejos o con más elementos para recordar.\n" +
+    "- Historias cortas que conecten los conceptos\n\n" +
+    "REGLAS OBLIGATORIAS PARA ACRÓNIMOS:\n" +
+    "1. Cada letra del acrónimo DEBE corresponder a la primera letra real de un ítem de la lista del material.\n" +
+    "2. La explicación DEBE listar la correspondencia completa: letra → ítem.\n" +
+    "   Ejemplo correcto: 'R-E-P: R = Representativa, E = Electoral, P = Periódica'.\n" +
+    "   Ejemplo incorrecto: 'R-E-P' pero R = Reforma (que no está en la lista).\n" +
+    "3. El acrónimo DEBE cubrir TODOS los ítems de la enumeración del material. No omitas ninguno.\n" +
+    "4. Si alguna letra no forma un acrónimo pronunciable, usá una frase donde cada palabra empiece con esa letra.\n" +
+    "5. Verificá antes de incluir: ¿cada letra coincide con el ítem correspondiente? ¿Están todos los ítems? Si no, reformulá.\n\n" +
+    "REGLAS GENERALES:\n" +
+    "- Priorizá enumeraciones del material (principios, fuentes, requisitos, elementos, características).\n" +
+    "- Incluí TODOS los ítems de cada enumeración, no solo algunos.\n" +
+    "- No inventes ítems que no estén en el material.\n" +
+    "- No uses caracteres decorativos ni símbolos especiales.\n" +
+    "Generá entre 5 y 8 mnemotécnicos.\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>`
   );

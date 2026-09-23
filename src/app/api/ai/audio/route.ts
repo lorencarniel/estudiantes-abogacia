@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { audioScriptPrompt, audioScriptSchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
+import { safeJsonParse } from "@/lib/utils";
 
 const VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"] as const;
 
@@ -53,20 +54,26 @@ export async function POST(request: Request) {
       max_tokens: 4000,
     });
 
-    const scriptContent = JSON.parse(scriptResponse.choices[0].message.content || "{}");
+    const scriptContent = safeJsonParse(scriptResponse.choices[0]?.message?.content, { title: "", script: "" });
     const script = scriptContent.script || "";
     const title = scriptContent.title || "Audio explicativo";
 
     if (!script || script.length < 50) {
-      return NextResponse.json({ error: "No se pudo generar el guión" }, { status: 502 });
+      return NextResponse.json({ error: "No se pudo generar el guión del audio. El material puede ser demasiado corto." }, { status: 502 });
     }
 
-    const ttsResponse = await openai.audio.speech.create({
-      model: "tts-1",
-      voice: voice,
-      input: script,
-      response_format: "mp3",
-    });
+    let ttsResponse;
+    try {
+      ttsResponse = await openai.audio.speech.create({
+        model: "tts-1",
+        voice: voice,
+        input: script.length > 4096 ? script.slice(0, 4096) : script,
+        response_format: "mp3",
+      });
+    } catch (ttsErr) {
+      console.error("TTS error:", ttsErr);
+      return NextResponse.json({ error: "No se pudo sintetizar el audio. Intentá con un texto más corto." }, { status: 502 });
+    }
 
     const audioBuffer = Buffer.from(await ttsResponse.arrayBuffer());
 

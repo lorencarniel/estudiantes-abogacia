@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
-import { quizPrompt, quizSchema, ExamType } from "@/lib/prompts";
+import { quizPrompt, quizSchema, quizValidationPrompt, quizValidationSchema, ExamType } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { addXP } from "@/lib/xp";
 import { safeJsonParse } from "@/lib/utils";
@@ -79,43 +79,76 @@ export async function POST(request: Request) {
 
     const content = safeJsonParse(response.choices?.[0]?.message?.content, { questions: [] } as { questions: QuizQuestion[] });
 
-    const valid: QuizQuestion[] = [];
-    const invalidStatements: string[] = [];
+    let syntaxValid: QuizQuestion[] = [];
     for (const q of content.questions) {
       if (validateQuestion(q)) {
-        valid.push(q);
-      } else {
-        invalidStatements.push(q.statement || "(vacía)");
+        syntaxValid.push(q);
       }
     }
 
-    if (valid.length < 10 && invalidStatements.length > 0) {
-      const needed = 10 - valid.length;
-      const avoidList = valid.map((q) => q.statement);
-      const retryResponse = await openai.chat.completions.create({
-        model: AI_MODEL,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: quizPrompt(text, difficulty, avoidList, examType as ExamType | undefined, syllabusContent) },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: { name: "exam", strict: true, schema: quizSchema },
-        },
-        temperature: 0.3,
-        max_tokens: 8000,
-      });
+    // Second pass: semantic validation against the material
+    let semanticValid: QuizQuestion[] = [];
+    if (syntaxValid.length > 0) {
+      try {
+        const valResponse = await openai.chat.completions.create({
+          model: AI_MODEL,
+          messages: [
+            { role: "system", content: "Sos un verificador de calidad de exámenes de derecho argentino. Evaluá cada pregunta con rigor." },
+            { role: "user", content: quizValidationPrompt(text, syntaxValid) },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: "quiz_validation", strict: true, schema: quizValidationSchema },
+          },
+          temperature: 0,
+          max_tokens: 4000,
+        });
 
-      const retryContent = safeJsonParse(retryResponse.choices?.[0]?.message?.content, { questions: [] } as { questions: QuizQuestion[] });
-      for (const q of retryContent.questions) {
-        if (valid.length >= 10) break;
-        if (validateQuestion(q)) {
-          valid.push(q);
+        const valContent = safeJsonParse(valResponse.choices?.[0]?.message?.content, { results: [] } as {
+          results: Array<{ question_index: number; valid: boolean; reason: string }>;
+        });
+
+        const invalidIndexes = new Set(
+          valContent.results.filter((r) => !r.valid).map((r) => r.question_index)
+        );
+
+        semanticValid = syntaxValid.filter((_, i) => !invalidIndexes.has(i));
+      } catch {
+        semanticValid = syntaxValid;
+      }
+    }
+
+    // If too many were filtered, regenerate replacements
+    if (semanticValid.length < 10) {
+      const avoidList = semanticValid.map((q) => q.statement);
+      try {
+        const retryResponse = await openai.chat.completions.create({
+          model: AI_MODEL,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: quizPrompt(text, difficulty, avoidList, examType as ExamType | undefined, syllabusContent) },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: "exam", strict: true, schema: quizSchema },
+          },
+          temperature: 0.3,
+          max_tokens: 8000,
+        });
+
+        const retryContent = safeJsonParse(retryResponse.choices?.[0]?.message?.content, { questions: [] } as { questions: QuizQuestion[] });
+        for (const q of retryContent.questions) {
+          if (semanticValid.length >= 10) break;
+          if (validateQuestion(q)) {
+            semanticValid.push(q);
+          }
         }
+      } catch {
+        // Keep what we have
       }
     }
 
-    const finalQuestions = valid.slice(0, 10);
+    const finalQuestions = semanticValid.slice(0, 10);
 
     const quiz = await prisma.quizAttempt.create({
       data: {

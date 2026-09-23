@@ -32,20 +32,22 @@ export async function POST(request: Request) {
 
   const { subjects, examDate, hoursPerDay } = parsed.data;
 
-  const exam = new Date(examDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Parse dates as local noon to avoid UTC/timezone off-by-one
+  const [ey, em, ed] = examDate.split("-").map(Number);
+  const exam = new Date(ey, em - 1, ed, 12, 0, 0);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
 
   if (exam <= today) {
     return NextResponse.json({ error: "La fecha del examen debe ser futura" }, { status: 400 });
   }
 
-  const diffDays = Math.ceil((exam.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round((exam.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays > 90) {
     return NextResponse.json({ error: "Máximo 90 días de planificación" }, { status: 400 });
   }
 
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -68,7 +70,7 @@ export async function POST(request: Request) {
       data: {
         userId: session.user.id,
         title: content.title || "Cronograma de estudio",
-        examDate: exam,
+        examDate: new Date(ey, em - 1, ed, 12, 0, 0),
         hoursPerDay,
         subjects: JSON.stringify(subjects),
         schedule: JSON.stringify(content.days || []),

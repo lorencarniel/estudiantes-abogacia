@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         type: "json_schema",
         json_schema: { name: "practical_case", strict: true, schema: practicalCaseSchema },
       },
-      temperature: 0.6,
+      temperature: 0.4,
       max_tokens: 4000,
     });
 
