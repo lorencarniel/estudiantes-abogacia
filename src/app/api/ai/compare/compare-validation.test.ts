@@ -199,20 +199,19 @@ describe("concepto insuficientemente documentado", () => {
 
 // ── Test 7: Contaminación cross-sección (caso real: Estados regionales → Confederación) ──
 describe("contaminación cross-sección", () => {
-  it("detecta datos de 'Estados regionales' asignados a Confederación", () => {
-    const diff = makeDifference({
-      aspect: "Senado Federal",
-      concept_b_value: "Inexistencia de un Senado Federal",
-      source_section_b: "Estados regionales",
-    });
-    expect(hasCrossSectionContamination(diff, "Federación", "Confederación")).toBe(true);
-  });
-
   it("no marca contaminación cuando las secciones coinciden con los conceptos", () => {
     expect(hasCrossSectionContamination(makeDifference(), "Federación", "Confederación")).toBe(false);
   });
 
-  it("detecta sección de concepto A usada para concepto B", () => {
+  it("no marca contaminación con nombres derivados (Estado Federal → Federación)", () => {
+    const diff = makeDifference({
+      source_section_a: "Estado Federal",
+      source_section_b: "Confederación de Estados",
+    });
+    expect(hasCrossSectionContamination(diff, "Federación", "Confederación")).toBe(false);
+  });
+
+  it("detecta sección del concepto opuesto usada para el otro", () => {
     const diff = makeDifference({
       source_section_a: "Confederación",
       source_section_b: "Confederación",
@@ -220,20 +219,20 @@ describe("contaminación cross-sección", () => {
     expect(hasCrossSectionContamination(diff, "Federación", "Confederación")).toBe(true);
   });
 
-  it("filtra diferencias con contaminación cross-sección", () => {
+  it("genera warning (no filtra) para diferencias con sección sospechosa", () => {
     const comp = makeComparison({
       differences: [
         makeDifference(),
         makeDifference({
-          aspect: "Senado Federal",
-          concept_b_value: "Inexistencia de un Senado Federal",
-          source_section_b: "Estados regionales",
+          aspect: "Senado",
+          source_section_a: "Confederación",
+          source_section_b: "Confederación",
         }),
       ],
     });
     const result = validateComparison(comp);
-    expect(result.filteredDifferences).toHaveLength(1);
-    expect(result.addedWarnings.some((w) => w.includes("sección sobre otro concepto"))).toBe(true);
+    expect(result.filteredDifferences).toHaveLength(2);
+    expect(result.addedWarnings.some((w) => w.includes("verificar sección fuente"))).toBe(true);
   });
 });
 

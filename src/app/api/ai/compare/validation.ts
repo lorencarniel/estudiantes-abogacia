@@ -68,6 +68,25 @@ export function hasUnsourcedSimilarity(sim: ComparisonSimilarity): boolean {
   return sim.source_fragment.trim().length < 10;
 }
 
+function wordsShareRoot(a: string, b: string): boolean {
+  const minLen = Math.min(a.length, b.length);
+  if (minLen < 5) return false;
+  const rootLen = Math.min(minLen, 6);
+  return a.substring(0, rootLen) === b.substring(0, rootLen);
+}
+
+function sectionMatchesConcept(section: string, concept: string): boolean {
+  const c = concept.trim().toLowerCase();
+  const s = section.trim().toLowerCase();
+  if (s === c) return true;
+
+  const sWords = s.split(/[\s,;:./()]+/).filter((w) => w.length > 3);
+  const cWords = c.split(/[\s,;:./()]+/).filter((w) => w.length > 3);
+
+  if (cWords.some((cw) => sWords.some((sw) => sw === cw || wordsShareRoot(sw, cw)))) return true;
+  return false;
+}
+
 export function hasCrossSectionContamination(
   diff: ComparisonDifference,
   conceptA: string,
@@ -78,16 +97,13 @@ export function hasCrossSectionContamination(
 
   if (!sectionA || !sectionB) return false;
 
-  function sectionMatchesConcept(section: string, concept: string): boolean {
-    const c = concept.trim().toLowerCase();
-    if (section === c) return true;
-    const sWords = section.split(/[\s,;:./()]+/).filter((w) => w.length > 3);
-    const cWords = c.split(/[\s,;:./()]+/).filter((w) => w.length > 3);
-    return cWords.some((cw) => sWords.some((sw) => sw === cw));
-  }
+  const aMatchesA = sectionMatchesConcept(sectionA, conceptA);
+  const aMatchesB = sectionMatchesConcept(sectionA, conceptB);
+  const bMatchesA = sectionMatchesConcept(sectionB, conceptA);
+  const bMatchesB = sectionMatchesConcept(sectionB, conceptB);
 
-  if (!sectionMatchesConcept(sectionA, conceptA)) return true;
-  if (!sectionMatchesConcept(sectionB, conceptB)) return true;
+  if (aMatchesB && !aMatchesA) return true;
+  if (bMatchesA && !bMatchesB) return true;
 
   return false;
 }
@@ -129,12 +145,14 @@ export function validateComparison(c: Comparison): {
       addedWarnings.push(`Diferencia "${d.aspect}" descartada por falta de respaldo textual.`);
       return false;
     }
-    if (hasCrossSectionContamination(d, c.concept_a, c.concept_b)) {
-      addedWarnings.push(`Diferencia "${d.aspect}" descartada: la fuente proviene de una sección sobre otro concepto.`);
-      return false;
-    }
     return true;
   });
+
+  for (const d of filteredDifferences) {
+    if (hasCrossSectionContamination(d, c.concept_a, c.concept_b)) {
+      addedWarnings.push(`Diferencia "${d.aspect}": verificar sección fuente (${d.source_section_a || "?"} / ${d.source_section_b || "?"}).`);
+    }
+  }
 
   const filteredSimilarities = c.similarities.filter((s) => {
     if (hasGenericSimilarity(s)) {
