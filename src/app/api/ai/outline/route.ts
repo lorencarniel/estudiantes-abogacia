@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         type: "json_schema",
         json_schema: { name: "outline", strict: true, schema: outlineSchema },
       },
-      temperature: 0.3,
+      temperature: 0.1,
       max_tokens: 16000,
     });
 

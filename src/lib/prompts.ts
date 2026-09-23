@@ -89,17 +89,19 @@ export function expandSummaryPrompt(text: string, currentSummary: string, curren
 export function outlinePrompt(text: string, syllabus?: string): string {
   return (
     `${BASE_RULES} ` +
-    "Generá un esquema jerárquico (tipo índice/outline) basado exclusivamente en el apunte. " +
-    "Organizá la información en secciones y subsecciones lógicas, respetando la estructura original del material cuando la tenga. " +
-    "\n\nREGLAS ESTRICTAS DE COBERTURA:\n" +
-    "1. Leé el apunte COMPLETO de principio a fin. Cada párrafo del material debe tener su reflejo en el esquema.\n" +
-    "2. Si el material enumera ítems (fuentes, tipos, clasificaciones, autores, principios), el esquema debe listar TODOS, no usar 'entre otras', 'etc.' ni 'se mencionan los principales'.\n" +
-    "3. Si el material distingue subtipos o categorías (ej: democracia directa/indirecta/semidirecta, estado unitario/federal/confederado/regional), TODOS deben aparecer como subsecciones con su definición.\n" +
-    "4. Si el material menciona artículos de la Constitución o leyes, incluílos con su contenido específico.\n" +
-    "5. Si el material nombra autores con aportes específicos, incluí qué dijo o aportó cada uno, no solo el nombre.\n" +
-    "6. Las notas explicativas deben aportar contenido concreto: definiciones, diferencias, requisitos, ejemplos del material. NUNCA frases vagas como 'se explican los conceptos' o 'se mencionan los referentes'.\n" +
-    "7. Usá tantas secciones y subsecciones como sean necesarias. No hay límite.\n" +
-    "\nDevolvé únicamente JSON conforme al esquema.\n" +
+    "Tu tarea es EXTRAER y ORGANIZAR toda la información del apunte en un esquema jerárquico. " +
+    "NO es un resumen ni una vista general: es una extracción exhaustiva de cada dato del material.\n\n" +
+    "MÉTODO: Recorré el apunte párrafo por párrafo, de principio a fin. " +
+    "Todo lo que dice el apunte debe quedar en el esquema. Si un dato del apunte no aparece en tu esquema, es un error.\n\n" +
+    "REGLAS:\n" +
+    "- Cada item del esquema debe contener el DATO CONCRETO del material, no una descripción de que el tema existe. " +
+    "MAL: 'Se analizan las formas de Estado'. BIEN: 'Unitario: un solo centro de poder. Federal: coexisten gobierno central y gobiernos locales. Confederado: Estados soberanos se unen por pacto. Regional: Estado unitario con descentralización política.'\n" +
+    "- Si el material enumera una lista (fuentes, tipos, autores, principios, artículos), transcribí CADA elemento. Nunca 'entre otras', 'etc.', 'los principales' ni 'se mencionan'.\n" +
+    "- Si el material define un concepto, la nota debe contener ESA definición, no una versión genérica.\n" +
+    "- Si el material atribuye una idea a un autor, incluí autor + idea concreta.\n" +
+    "- Si el material cita artículos de la CN o leyes, incluí el número y qué establece.\n" +
+    "- Usá tantas secciones e items como necesites. Sin límite.\n\n" +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
   );
