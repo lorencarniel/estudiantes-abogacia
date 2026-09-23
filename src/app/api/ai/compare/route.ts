@@ -14,7 +14,6 @@ import {
   type Comparison,
   validateComparisonSyntax,
   validateComparison,
-  hasFabricatedSource,
 } from "./validation";
 
 export async function POST(request: Request) {
@@ -76,23 +75,20 @@ export async function POST(request: Request) {
         s.source_section = cleanJsonArtifacts(s.source_section);
       }
 
-      const rescuedCriteria: string[] = [];
-      for (const d of comp.differences) {
-        if (hasFabricatedSource(d.source_a) || hasFabricatedSource(d.source_b)) {
-          rescuedCriteria.push(d.aspect);
-        }
-      }
-
       const result = validateComparison(comp);
-      const allMentionedCriteria = [...comp.mentioned_criteria, ...rescuedCriteria];
-      const uniqueCriteria = Array.from(new Set(allMentionedCriteria));
+
+      const approvedAspects = new Set(result.approvedDifferences.map((d) => d.aspect.toLowerCase()));
+      const allMentioned = [...comp.mentioned_criteria, ...result.reclassifiedCriteria];
+      const uniqueCriteria = Array.from(new Set(allMentioned)).filter(
+        (c) => !approvedAspects.has(c.toLowerCase()),
+      );
 
       validatedComparisons.push({
         ...comp,
-        differences: result.filteredDifferences,
+        differences: result.approvedDifferences,
         mentioned_criteria: uniqueCriteria,
         similarities: result.filteredSimilarities,
-        warnings: [...comp.warnings, ...result.addedWarnings],
+        warnings: result.warnings,
         example: comp.example_type === "none" ? "" : comp.example,
       });
     }

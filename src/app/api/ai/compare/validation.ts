@@ -119,6 +119,20 @@ export function looksLikeInverseInference(
   return checkSide(valueA, sourceA) || checkSide(valueB, sourceB);
 }
 
+export function hasDefinitionContamination(
+  definitionA: string,
+  definitionB: string,
+): boolean {
+  const a = definitionA.trim().toLowerCase();
+  const b = definitionB.trim().toLowerCase();
+  if (a.length < 10 || b.length < 10) return false;
+  if (a === b) return true;
+  const shorter = a.length < b.length ? a : b;
+  const longer = a.length < b.length ? b : a;
+  if (longer.includes(shorter) && shorter.length > 20) return true;
+  return false;
+}
+
 function wordsShareRoot(a: string, b: string): boolean {
   const minLen = Math.min(a.length, b.length);
   if (minLen < 5) return false;
@@ -176,58 +190,61 @@ export function hasGenericDefinition(definition: string): boolean {
   return patterns.some((p) => p.test(definition.trim()));
 }
 
-export function validateComparison(c: Comparison): {
+export interface ValidationResult {
   valid: boolean;
-  filteredDifferences: ComparisonDifference[];
+  approvedDifferences: ComparisonDifference[];
+  reclassifiedCriteria: string[];
   filteredSimilarities: ComparisonSimilarity[];
-  addedWarnings: string[];
-} {
-  const addedWarnings: string[] = [];
+  warnings: string[];
+}
+
+export function validateComparison(c: Comparison): ValidationResult {
+  const warnings: string[] = [];
+  const reclassifiedCriteria: string[] = [];
 
   if (hasGenericDefinition(c.definition_a)) {
-    addedWarnings.push(`Definición de "${c.concept_a}" parece genérica (no proviene del material). Verificar.`);
+    warnings.push(`Definición de "${c.concept_a}" parece genérica (no proviene del material). Verificar.`);
   }
   if (hasGenericDefinition(c.definition_b)) {
-    addedWarnings.push(`Definición de "${c.concept_b}" parece genérica (no proviene del material). Verificar.`);
+    warnings.push(`Definición de "${c.concept_b}" parece genérica (no proviene del material). Verificar.`);
   }
 
-  const filteredDifferences = c.differences.filter((d) => {
-    if (hasUnsourcedDifference(d)) {
-      addedWarnings.push(`Diferencia "${d.aspect}" descartada por falta de respaldo textual en ambos lados.`);
-      return false;
-    }
-    return true;
-  });
+  if (hasDefinitionContamination(c.definition_a, c.definition_b)) {
+    warnings.push("Las definiciones de ambos conceptos son idénticas o una contiene a la otra. Posible contaminación.");
+  }
 
-  for (const d of filteredDifferences) {
-    if (hasCrossSectionContamination(d, c.concept_a, c.concept_b)) {
-      addedWarnings.push(`Diferencia "${d.aspect}": verificar sección fuente (${d.source_section_a || "?"} / ${d.source_section_b || "?"}).`);
+  const approvedDifferences: ComparisonDifference[] = [];
+
+  for (const d of c.differences) {
+    if (hasUnsourcedDifference(d)) {
+      reclassifiedCriteria.push(d.aspect);
+      continue;
     }
     if (looksLikeInverseInference(d.concept_a_value, d.concept_b_value, d.source_a, d.source_b)) {
-      addedWarnings.push(`Diferencia "${d.aspect}": posible inferencia inversa. Verificar que ambos lados estén explícitos en la fuente.`);
+      reclassifiedCriteria.push(d.aspect);
+      continue;
     }
+    if (hasCrossSectionContamination(d, c.concept_a, c.concept_b)) {
+      reclassifiedCriteria.push(d.aspect);
+      continue;
+    }
+    approvedDifferences.push(d);
   }
 
   const filteredSimilarities = c.similarities.filter((s) => {
-    if (hasGenericSimilarity(s)) {
-      addedWarnings.push(`Semejanza genérica descartada: "${s.statement}"`);
-      return false;
-    }
-    if (hasUnsourcedSimilarity(s)) {
-      addedWarnings.push(`Semejanza descartada por falta de respaldo textual: "${s.statement}"`);
-      return false;
-    }
+    if (hasGenericSimilarity(s)) return false;
+    if (hasUnsourcedSimilarity(s)) return false;
     return true;
   });
 
   if (!c.concept_a_supported) {
-    addedWarnings.push(`El material no desarrolla suficientemente "${c.concept_a}". Comparación parcial.`);
+    warnings.push(`El material no desarrolla suficientemente "${c.concept_a}". Comparación parcial.`);
   }
   if (!c.concept_b_supported) {
-    addedWarnings.push(`El material no desarrolla suficientemente "${c.concept_b}". Comparación parcial.`);
+    warnings.push(`El material no desarrolla suficientemente "${c.concept_b}". Comparación parcial.`);
   }
 
-  const valid = c.concept_a_supported && c.concept_b_supported && filteredDifferences.length > 0;
+  const valid = c.concept_a_supported && c.concept_b_supported && approvedDifferences.length > 0;
 
-  return { valid, filteredDifferences, filteredSimilarities, addedWarnings };
+  return { valid, approvedDifferences, reclassifiedCriteria, filteredSimilarities, warnings };
 }

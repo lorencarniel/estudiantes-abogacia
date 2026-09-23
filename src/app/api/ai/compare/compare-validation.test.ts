@@ -7,6 +7,7 @@ import {
   hasUnsourcedSimilarity,
   hasCrossSectionContamination,
   hasGenericDefinition,
+  hasDefinitionContamination,
   looksLikeInverseInference,
   hasFabricatedSource,
   type Comparison,
@@ -76,7 +77,7 @@ describe("definición inventada", () => {
   it("detecta concepto no soportado por la fuente", () => {
     const comp = makeComparison({ concept_b_supported: false });
     const result = validateComparison(comp);
-    expect(result.addedWarnings.some((w) => w.includes("no desarrolla suficientemente"))).toBe(true);
+    expect(result.warnings.some((w) => w.includes("no desarrolla suficientemente"))).toBe(true);
   });
 
   it("detecta definición genérica del LLM", () => {
@@ -96,7 +97,7 @@ describe("definición inventada", () => {
       definition_a: "Es la rama del derecho que estudia la organización provincial",
     });
     const result = validateComparison(comp);
-    expect(result.addedWarnings.some((w) => w.includes("genérica"))).toBe(true);
+    expect(result.warnings.some((w) => w.includes("genérica"))).toBe(true);
   });
 });
 
@@ -114,7 +115,7 @@ describe("diferencia sin respaldo", () => {
     expect(hasUnsourcedDifference(makeDifference())).toBe(false);
   });
 
-  it("filtra diferencias sin respaldo de la comparación", () => {
+  it("filtra diferencias sin respaldo y las reclasifica como criterios mencionados", () => {
     const comp = makeComparison({
       differences: [
         makeDifference(),
@@ -122,8 +123,8 @@ describe("diferencia sin respaldo", () => {
       ],
     });
     const result = validateComparison(comp);
-    expect(result.filteredDifferences).toHaveLength(1);
-    expect(result.addedWarnings.some((w) => w.includes("Soberanía"))).toBe(true);
+    expect(result.approvedDifferences).toHaveLength(1);
+    expect(result.reclassifiedCriteria).toContain("Soberanía");
   });
 });
 
@@ -196,11 +197,11 @@ describe("concepto insuficientemente documentado", () => {
     });
     const result = validateComparison(comp);
     expect(result.valid).toBe(false);
-    expect(result.addedWarnings.filter((w) => w.includes("no desarrolla suficientemente"))).toHaveLength(2);
+    expect(result.warnings.filter((w) => w.includes("no desarrolla suficientemente"))).toHaveLength(2);
   });
 });
 
-// ── Test 7: Contaminación cross-sección (caso real: Estados regionales → Confederación) ──
+// ── Test 7: Contaminación cross-sección ──
 describe("contaminación cross-sección", () => {
   it("no marca contaminación cuando las secciones coinciden con los conceptos", () => {
     expect(hasCrossSectionContamination(makeDifference(), "Federación", "Confederación")).toBe(false);
@@ -222,7 +223,7 @@ describe("contaminación cross-sección", () => {
     expect(hasCrossSectionContamination(diff, "Federación", "Confederación")).toBe(true);
   });
 
-  it("genera warning (no filtra) para diferencias con sección sospechosa", () => {
+  it("FILTRA diferencia con cross-section contamination y la reclasifica", () => {
     const comp = makeComparison({
       differences: [
         makeDifference(),
@@ -234,8 +235,8 @@ describe("contaminación cross-sección", () => {
       ],
     });
     const result = validateComparison(comp);
-    expect(result.filteredDifferences).toHaveLength(2);
-    expect(result.addedWarnings.some((w) => w.includes("verificar sección fuente"))).toBe(true);
+    expect(result.approvedDifferences).toHaveLength(1);
+    expect(result.reclassifiedCriteria).toContain("Senado");
   });
 });
 
@@ -295,9 +296,10 @@ describe("inferencia inversa", () => {
     )).toBe(false);
   });
 
-  it("genera warning para diferencia con posible inferencia inversa", () => {
+  it("FILTRA diferencia con inferencia inversa y la reclasifica como criterio mencionado", () => {
     const comp = makeComparison({
       differences: [
+        makeDifference(),
         makeDifference({
           aspect: "Órganos centrales",
           concept_a_value: "Existen órganos centrales",
@@ -308,7 +310,9 @@ describe("inferencia inversa", () => {
       ],
     });
     const result = validateComparison(comp);
-    expect(result.addedWarnings.some((w) => w.includes("posible inferencia inversa"))).toBe(true);
+    expect(result.approvedDifferences).toHaveLength(1);
+    expect(result.approvedDifferences[0].aspect).toBe("Base jurídica");
+    expect(result.reclassifiedCriteria).toContain("Órganos centrales");
   });
 });
 
@@ -336,6 +340,21 @@ describe("citas fabricadas", () => {
       source_b: "No se menciona imperium sobre los Estados confederados.",
     });
     expect(hasUnsourcedDifference(diff)).toBe(true);
+  });
+
+  it("reclasifica diferencia con source fabricado como criterio mencionado", () => {
+    const comp = makeComparison({
+      differences: [
+        makeDifference(),
+        makeDifference({
+          aspect: "Imperium",
+          source_b: "No se menciona imperium sobre los Estados confederados.",
+        }),
+      ],
+    });
+    const result = validateComparison(comp);
+    expect(result.approvedDifferences).toHaveLength(1);
+    expect(result.reclassifiedCriteria).toContain("Imperium");
   });
 });
 
@@ -383,7 +402,7 @@ describe("secciones artificiales", () => {
       differences: [makeDifference({ source_a: "", source_b: "" })],
     });
     const result = validateComparison(comp);
-    expect(result.filteredDifferences).toHaveLength(0);
+    expect(result.approvedDifferences).toHaveLength(0);
     expect(result.valid).toBe(false);
   });
 
@@ -396,5 +415,177 @@ describe("secciones artificiales", () => {
     });
     expect(validateComparisonSyntax(comp)).toBe(true);
     expect(comp.mentioned_criteria).toHaveLength(2);
+  });
+});
+
+// ── Test 11: Contaminación de definiciones ──
+describe("contaminación de definiciones", () => {
+  it("detecta definiciones idénticas", () => {
+    expect(hasDefinitionContamination(
+      "División del poder en el territorio",
+      "División del poder en el territorio",
+    )).toBe(true);
+  });
+
+  it("detecta definición A contenida en definición B", () => {
+    expect(hasDefinitionContamination(
+      "Mayor grado de descentralización del poder territorial",
+      "Mayor grado de descentralización del poder territorial con autonomía y soberanía compartida",
+    )).toBe(true);
+  });
+
+  it("acepta definiciones distintas", () => {
+    expect(hasDefinitionContamination(
+      "División del poder en el territorio",
+      "Mayor grado de descentralización del poder",
+    )).toBe(false);
+  });
+
+  it("genera warning para definiciones contaminadas", () => {
+    const comp = makeComparison({
+      definition_a: "Unión de Estados soberanos mediante un pacto internacional",
+      definition_b: "Unión de Estados soberanos mediante un pacto internacional",
+    });
+    const result = validateComparison(comp);
+    expect(result.warnings.some((w) => w.includes("contaminación"))).toBe(true);
+  });
+});
+
+// ── Test 12: Exclusividad mutua (criterio no puede estar en ambas listas) ──
+describe("exclusividad mutua diferencias/criterios", () => {
+  it("criterio filtrado va solo a reclassifiedCriteria, no a approvedDifferences", () => {
+    const comp = makeComparison({
+      differences: [
+        makeDifference(),
+        makeDifference({
+          aspect: "Nulificación",
+          concept_a_value: "No tienen derecho de nulificación",
+          concept_b_value: "Tienen derecho de nulificación",
+          source_a: "la federación tiene constitución suprema",
+          source_b: "los estados confederados retienen el derecho de nulificación",
+        }),
+      ],
+    });
+    const result = validateComparison(comp);
+    const approvedAspects = result.approvedDifferences.map((d) => d.aspect);
+    expect(approvedAspects).not.toContain("Nulificación");
+    expect(result.reclassifiedCriteria).toContain("Nulificación");
+  });
+
+  it("criterio aprobado no aparece en reclassifiedCriteria", () => {
+    const result = validateComparison(makeComparison());
+    const approvedAspects = result.approvedDifferences.map((d) => d.aspect);
+    expect(approvedAspects).toContain("Base jurídica");
+    expect(result.reclassifiedCriteria).not.toContain("Base jurídica");
+  });
+});
+
+// ── Test 13: Regresiones Federación vs Confederación ──
+describe("regresiones Federación vs Confederación", () => {
+  it("NO aprueba diferencia con sí/no binario", () => {
+    const comp = makeComparison({
+      differences: [
+        makeDifference({
+          aspect: "Imperium",
+          concept_a_value: "sí",
+          concept_b_value: "no",
+          source_a: "El gobierno central tiene imperium",
+          source_b: "Los estados conservan soberanía plena",
+        }),
+      ],
+    });
+    const result = validateComparison(comp);
+    expect(result.approvedDifferences).toHaveLength(0);
+    expect(result.reclassifiedCriteria).toContain("Imperium");
+  });
+
+  it("NO aprueba diferencia con 'no existen' inferido de 'existen'", () => {
+    const comp = makeComparison({
+      differences: [
+        makeDifference({
+          aspect: "Órganos centrales",
+          concept_a_value: "Existen órganos centrales",
+          concept_b_value: "No existen órganos centrales",
+          source_a: "existencia de órganos centrales en el Estado Federal",
+          source_b: "la confederación es una unión de estados soberanos independientes",
+        }),
+      ],
+    });
+    const result = validateComparison(comp);
+    expect(result.approvedDifferences).toHaveLength(0);
+  });
+
+  it("NO aprueba diferencia con 'menor grado' inferido de 'mayor grado'", () => {
+    const comp = makeComparison({
+      differences: [
+        makeDifference({
+          aspect: "Descentralización",
+          concept_a_value: "Menor grado de descentralización",
+          concept_b_value: "Mayor grado de descentralización",
+          source_a: "la federación divide el poder entre niveles de gobierno",
+          source_b: "mayor grado de descentralización del poder territorial",
+        }),
+      ],
+    });
+    const result = validateComparison(comp);
+    expect(result.approvedDifferences).toHaveLength(0);
+  });
+
+  it("NO aprueba diferencia con source fabricado (meta-declaración)", () => {
+    const comp = makeComparison({
+      differences: [
+        makeDifference({
+          aspect: "Imperium",
+          concept_a_value: "El gobierno ejerce imperium",
+          concept_b_value: "No se aplica imperium",
+          source_a: "El gobierno central tiene imperium sobre todo el territorio",
+          source_b: "No se menciona imperium sobre los Estados confederados.",
+        }),
+      ],
+    });
+    const result = validateComparison(comp);
+    expect(result.approvedDifferences).toHaveLength(0);
+    expect(result.reclassifiedCriteria).toContain("Imperium");
+  });
+
+  it("NO aprueba diferencia con cross-section contamination", () => {
+    const comp = makeComparison({
+      differences: [
+        makeDifference({
+          aspect: "Soberanía compartida",
+          concept_a_value: "Autonomía sin soberanía plena",
+          concept_b_value: "Soberanía compartida entre miembros",
+          source_a: "los estados confederados mantienen soberanía compartida",
+          source_b: "la confederación se basa en un pacto",
+          source_section_a: "Confederación",
+          source_section_b: "Confederación",
+        }),
+      ],
+    });
+    const result = validateComparison(comp);
+    expect(result.approvedDifferences).toHaveLength(0);
+  });
+
+  it("NO aprueba diferencia con 'carece de' no en la fuente", () => {
+    const comp = makeComparison({
+      differences: [
+        makeDifference({
+          aspect: "Derecho de secesión",
+          concept_a_value: "Carece de derecho de secesión",
+          concept_b_value: "Retiene derecho de secesión",
+          source_a: "la federación se basa en una constitución como norma suprema",
+          source_b: "los estados confederados retienen el derecho de secesión",
+        }),
+      ],
+    });
+    const result = validateComparison(comp);
+    expect(result.approvedDifferences).toHaveLength(0);
+    expect(result.reclassifiedCriteria).toContain("Derecho de secesión");
+  });
+
+  it("SÍ aprueba 'Base jurídica: Constitución vs Pacto' con fuentes correctas", () => {
+    const result = validateComparison(makeComparison());
+    expect(result.approvedDifferences).toHaveLength(1);
+    expect(result.approvedDifferences[0].aspect).toBe("Base jurídica");
   });
 });
