@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         json_schema: { name: "outline", strict: true, schema: outlineSchema },
       },
       temperature: 0.3,
-      max_tokens: 4000,
+      max_tokens: 16000,
     });
 
     const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as any);

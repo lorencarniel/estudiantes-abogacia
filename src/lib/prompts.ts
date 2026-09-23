@@ -33,7 +33,7 @@ export function summaryPrompt(text: string, level: "corto" | "mediano" | "detall
   const guidance = {
     corto: "Redactá un resumen conciso de no más de 300 palabras, con los puntos absolutamente esenciales.",
     mediano: "Redactá un resumen de extensión media (500-800 palabras) que cubra los conceptos principales con cierto desarrollo.",
-    detallado: "Redactá un resumen detallado y exhaustivo (800-1500 palabras) que profundice en todos los conceptos, con ejemplos cuando los haya en el apunte.",
+    detallado: "Redactá un resumen detallado y exhaustivo (1500-3000 palabras) que cubra TODOS los temas del apunte sin omitir ninguno. Incluí cada definición, clasificación, enumeración, autor, artículo y ejemplo que aparezca en el material. No dejes ningún tema afuera.",
   }[level];
 
   return (
@@ -91,9 +91,11 @@ export function outlinePrompt(text: string, syllabus?: string): string {
     `${BASE_RULES} ` +
     "Generá un esquema jerárquico (tipo índice/outline) basado exclusivamente en el apunte. " +
     "Organizá la información en secciones y subsecciones lógicas, respetando la estructura original del material cuando la tenga. " +
-    "Cada nodo del esquema debe tener un título breve y, opcionalmente, una nota explicativa corta. " +
+    "IMPORTANTE: Cubrí TODO el contenido del apunte de principio a fin, sin omitir ningún tema, subtema, definición, clasificación ni enumeración. " +
+    "No resumas ni abrevies: cada concepto, autor, artículo, distinción o enumeración que aparece en el material debe estar reflejado en el esquema. " +
+    "Cada nodo del esquema debe tener un título breve y una nota explicativa que aporte contenido concreto (definiciones, diferencias, ejemplos), no frases vagas. " +
     "Si hay artículos o normas mencionados, incluílos en el lugar correspondiente del esquema. " +
-    "Usá entre 3 y 8 secciones principales, cada una con hasta 5 subsecciones. " +
+    "Usá tantas secciones y subsecciones como sean necesarias para cubrir todo el material sin omisiones. " +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
