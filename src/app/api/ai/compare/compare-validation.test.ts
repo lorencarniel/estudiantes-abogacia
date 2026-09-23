@@ -8,6 +8,7 @@ import {
   hasCrossSectionContamination,
   hasGenericDefinition,
   looksLikeInverseInference,
+  hasFabricatedSource,
   type Comparison,
   type ComparisonDifference,
   type ComparisonSimilarity,
@@ -308,6 +309,33 @@ describe("inferencia inversa", () => {
     });
     const result = validateComparison(comp);
     expect(result.addedWarnings.some((w) => w.includes("posible inferencia inversa"))).toBe(true);
+  });
+});
+
+// ── Test 7c: Citas fabricadas (meta-declaraciones) ──
+describe("citas fabricadas", () => {
+  it("detecta 'no se menciona' como meta-declaración", () => {
+    expect(hasFabricatedSource("No se menciona imperium sobre los Estados confederados.")).toBe(true);
+  });
+
+  it("detecta 'el material no' como meta-declaración", () => {
+    expect(hasFabricatedSource("El material no desarrolla este punto.")).toBe(true);
+  });
+
+  it("detecta 'la fuente no' como meta-declaración", () => {
+    expect(hasFabricatedSource("La fuente no establece este criterio.")).toBe(true);
+  });
+
+  it("acepta cita textual real", () => {
+    expect(hasFabricatedSource("Los estados miembros gozan de autonomía pero no de soberanía.")).toBe(false);
+  });
+
+  it("filtra diferencia con source fabricado", () => {
+    const diff = makeDifference({
+      aspect: "Imperium",
+      source_b: "No se menciona imperium sobre los Estados confederados.",
+    });
+    expect(hasUnsourcedDifference(diff)).toBe(true);
   });
 });
 

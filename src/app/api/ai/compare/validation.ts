@@ -62,8 +62,25 @@ export function hasGenericSimilarity(sim: ComparisonSimilarity): boolean {
   return generic.some((g) => lower.includes(g));
 }
 
+const META_STATEMENT_PATTERNS = [
+  /\bno se menciona\b/i,
+  /\bno aparece\b/i,
+  /\bno se desarrolla\b/i,
+  /\bel material no\b/i,
+  /\bla fuente no\b/i,
+  /\bno se hace referencia\b/i,
+  /\bno se establece\b/i,
+  /\bno se especifica\b/i,
+];
+
+export function hasFabricatedSource(source: string): boolean {
+  return META_STATEMENT_PATTERNS.some((p) => p.test(source));
+}
+
 export function hasUnsourcedDifference(diff: ComparisonDifference): boolean {
-  return diff.source_a.trim().length < 10 || diff.source_b.trim().length < 10;
+  if (diff.source_a.trim().length < 10 || diff.source_b.trim().length < 10) return true;
+  if (hasFabricatedSource(diff.source_a) || hasFabricatedSource(diff.source_b)) return true;
+  return false;
 }
 
 export function hasUnsourcedSimilarity(sim: ComparisonSimilarity): boolean {
