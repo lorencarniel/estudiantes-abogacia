@@ -107,6 +107,20 @@ export function outlinePrompt(text: string, syllabus?: string): string {
   );
 }
 
+export function outlineContinuePrompt(text: string, existingSections: string[], syllabus?: string): string {
+  return (
+    `${BASE_RULES} ` +
+    "Estás continuando un esquema que fue cortado antes de terminar. " +
+    "Ya se generaron estas secciones:\n" +
+    existingSections.map((s, i) => `${i + 1}. ${s}`).join("\n") +
+    "\n\nTu tarea es generar SOLAMENTE las secciones que FALTAN, cubriendo el resto del apunte que no fue incluido. " +
+    "Usá las mismas reglas: datos concretos, sin frases vagas, cada dato del material debe estar.\n" +
+    "Devolvé únicamente JSON conforme al esquema (con title y sections, donde sections son SOLO las nuevas).\n" +
+    `<apunte>\n${text}\n</apunte>` +
+    syllabusBlock(syllabus)
+  );
+}
+
 export const outlineSchema = {
   type: "object" as const,
   additionalProperties: false,

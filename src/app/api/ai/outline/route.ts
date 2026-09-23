@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT, SIMPLE_MODE_SUFFIX } from "@/lib/ai";
-import { outlinePrompt, outlineSchema } from "@/lib/prompts";
+import { outlinePrompt, outlineContinuePrompt, outlineSchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { safeJsonParse } from "@/lib/utils";
 
@@ -12,6 +12,17 @@ const requestSchema = z.object({
   syllabusId: z.string().optional(),
   simpleMode: z.boolean().optional(),
 });
+
+interface OutlineSection {
+  heading: string;
+  note: string;
+  items: Array<{ text: string; note: string }>;
+}
+
+interface OutlineResult {
+  title: string;
+  sections: OutlineSection[];
+}
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -35,12 +46,14 @@ export async function POST(request: Request) {
     if (syllabus) syllabusContent = syllabus.content;
   }
 
+  const simpleSuffix = simpleMode ? SIMPLE_MODE_SUFFIX : "";
+
   try {
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: outlinePrompt(text, syllabusContent) + (simpleMode ? SIMPLE_MODE_SUFFIX : "") },
+        { role: "user", content: outlinePrompt(text, syllabusContent) + simpleSuffix },
       ],
       response_format: {
         type: "json_schema",
@@ -50,7 +63,32 @@ export async function POST(request: Request) {
       max_tokens: 16000,
     });
 
-    const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as any);
+    const content = safeJsonParse(response.choices?.[0]?.message?.content, { title: "Esquema", sections: [] } as OutlineResult);
+    const finishReason = response.choices?.[0]?.finish_reason;
+
+    if (finishReason === "length" && content.sections.length > 0) {
+      const existingHeadings = content.sections.map((s: OutlineSection) => s.heading);
+
+      const contResponse = await openai.chat.completions.create({
+        model: AI_MODEL,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: outlineContinuePrompt(text, existingHeadings, syllabusContent) + simpleSuffix },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "outline", strict: true, schema: outlineSchema },
+        },
+        temperature: 0.1,
+        max_tokens: 16000,
+      });
+
+      const contContent = safeJsonParse(contResponse.choices?.[0]?.message?.content, { title: "", sections: [] } as OutlineResult);
+
+      if (contContent.sections && contContent.sections.length > 0) {
+        content.sections.push(...contContent.sections);
+      }
+    }
 
     const saved = await prisma.generatedContent.create({
       data: {
