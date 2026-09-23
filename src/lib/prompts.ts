@@ -154,6 +154,101 @@ export const outlineSchema = {
   },
 };
 
+export function parseSyllabusPrompt(syllabusText: string): string {
+  return (
+    "Parseá el siguiente programa de materia universitaria. " +
+    "Extraé TODAS las unidades con su número, título y la lista COMPLETA de temas y subtemas tal como aparecen. " +
+    "No resumas ni agrupes temas. Transcribí cada punto del programa.\n" +
+    `<programa>\n${syllabusText}\n</programa>`
+  );
+}
+
+export const parseSyllabusSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["units"],
+  properties: {
+    units: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["number", "title", "topics"],
+        properties: {
+          number: { type: "number" as const },
+          title: { type: "string" as const },
+          topics: {
+            type: "array" as const,
+            items: { type: "string" as const },
+          },
+        },
+      },
+    },
+  },
+};
+
+export function unitOutlinePrompt(material: string, unitTitle: string, unitTopics: string[]): string {
+  return (
+    `${BASE_RULES} ` +
+    "Tu tarea es EXTRAER del material de estudio todo el contenido correspondiente a UNA unidad específica del programa.\n\n" +
+    `UNIDAD: ${unitTitle}\n` +
+    "TEMAS ESPERADOS SEGÚN EL PROGRAMA:\n" +
+    unitTopics.map((t, i) => `${i + 1}. ${t}`).join("\n") +
+    "\n\nMÉTODO:\n" +
+    "1. Buscá en TODO el material los contenidos de cada tema de esta unidad. " +
+    "El material puede estar en diferente orden o con títulos distintos al programa.\n" +
+    "2. Para cada tema, extraé TODOS los datos concretos: definiciones textuales, clasificaciones completas, " +
+    "autores con sus aportes específicos, artículos con su contenido, enumeraciones sin omitir elementos.\n" +
+    "3. No mezcles contenido de otras unidades.\n" +
+    "4. Si un tema del programa NO está desarrollado en el material, incluílo en missing_topics.\n" +
+    "5. Las notas deben contener el dato concreto del material. " +
+    "MAL: 'Se analizan las formas de Estado'. " +
+    "BIEN: 'Unitario: un solo centro de poder. Federal: coexisten gobierno central y locales con autonomía. " +
+    "Confederado: Estados soberanos unidos por pacto, conservan derecho de secesión.'\n" +
+    "6. Nunca uses 'entre otras', 'etc.', 'se mencionan' ni 'los principales'.\n" +
+    "7. Usá tantas secciones e items como necesites.\n\n" +
+    "Devolvé JSON conforme al esquema.\n" +
+    `<material>\n${material}\n</material>`
+  );
+}
+
+export const unitOutlineSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["title", "sections", "missing_topics"],
+  properties: {
+    title: { type: "string" as const },
+    sections: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["heading", "note", "items"],
+        properties: {
+          heading: { type: "string" as const },
+          note: { type: "string" as const },
+          items: {
+            type: "array" as const,
+            items: {
+              type: "object" as const,
+              additionalProperties: false,
+              required: ["text", "note"],
+              properties: {
+                text: { type: "string" as const },
+                note: { type: "string" as const },
+              },
+            },
+          },
+        },
+      },
+    },
+    missing_topics: {
+      type: "array" as const,
+      items: { type: "string" as const },
+    },
+  },
+};
+
 const QUESTION_COUNT = 10;
 
 export function quizPrompt(
