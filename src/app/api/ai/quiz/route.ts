@@ -8,6 +8,26 @@ import { prisma } from "@/lib/prisma";
 import { addXP } from "@/lib/xp";
 import { safeJsonParse } from "@/lib/utils";
 
+interface QuizQuestion {
+  statement: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+  reference: string;
+}
+
+function validateQuestion(q: QuizQuestion): boolean {
+  if (!q.statement || q.statement.trim().length < 10) return false;
+  if (!Array.isArray(q.options) || q.options.length !== 4) return false;
+  if (q.options.some((o) => !o || o.trim().length === 0)) return false;
+  if (typeof q.correct_index !== "number" || q.correct_index < 0 || q.correct_index > 3) return false;
+  if (!q.explanation || q.explanation.trim().length < 5) return false;
+  if (!q.reference || q.reference.trim().length < 5) return false;
+  const unique = new Set(q.options.map((o) => o.trim().toLowerCase()));
+  if (unique.size < 4) return false;
+  return true;
+}
+
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
   difficulty: z.enum(["facil", "media", "dificil"]),
@@ -17,7 +37,7 @@ const requestSchema = z.object({
 
 const gradeSchema = z.object({
   quizId: z.string().min(1),
-  answers: z.array(z.number().int().min(0).max(3).nullable()).length(10),
+  answers: z.array(z.number().int().min(0).max(3).nullable()).min(1).max(10),
 });
 
 export async function POST(request: Request) {
@@ -53,11 +73,49 @@ export async function POST(request: Request) {
         type: "json_schema",
         json_schema: { name: "exam", strict: true, schema: quizSchema },
       },
-      temperature: 0.5,
-      max_tokens: 4000,
+      temperature: 0.3,
+      max_tokens: 8000,
     });
 
-    const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as any);
+    const content = safeJsonParse(response.choices?.[0]?.message?.content, { questions: [] } as { questions: QuizQuestion[] });
+
+    const valid: QuizQuestion[] = [];
+    const invalidStatements: string[] = [];
+    for (const q of content.questions) {
+      if (validateQuestion(q)) {
+        valid.push(q);
+      } else {
+        invalidStatements.push(q.statement || "(vacía)");
+      }
+    }
+
+    if (valid.length < 10 && invalidStatements.length > 0) {
+      const needed = 10 - valid.length;
+      const avoidList = valid.map((q) => q.statement);
+      const retryResponse = await openai.chat.completions.create({
+        model: AI_MODEL,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: quizPrompt(text, difficulty, avoidList, examType as ExamType | undefined, syllabusContent) },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "exam", strict: true, schema: quizSchema },
+        },
+        temperature: 0.3,
+        max_tokens: 8000,
+      });
+
+      const retryContent = safeJsonParse(retryResponse.choices?.[0]?.message?.content, { questions: [] } as { questions: QuizQuestion[] });
+      for (const q of retryContent.questions) {
+        if (valid.length >= 10) break;
+        if (validateQuestion(q)) {
+          valid.push(q);
+        }
+      }
+    }
+
+    const finalQuestions = valid.slice(0, 10);
 
     const quiz = await prisma.quizAttempt.create({
       data: {
@@ -65,8 +123,8 @@ export async function POST(request: Request) {
         title: `Cuestionario - ${difficulty}${examType ? ` (${examType})` : ""}`,
         difficulty,
         examType: examType || null,
-        questions: JSON.stringify(content.questions),
-        total: 10,
+        questions: JSON.stringify(finalQuestions),
+        total: finalQuestions.length,
         sourceText: text.substring(0, 500),
       },
     });
@@ -74,8 +132,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       quizId: quiz.id,
       difficulty,
-      questions: content.questions.map(
-        (q: { statement: string; options: string[] }, i: number) => ({
+      questions: finalQuestions.map(
+        (q, i) => ({
           number: i + 1,
           statement: q.statement,
           options: q.options,
@@ -116,12 +174,7 @@ export async function PUT(request: Request) {
     );
   }
 
-  const questions = safeJsonParse(quiz.questions, []) as Array<{
-    statement: string;
-    options: string[];
-    correct_index: number;
-    explanation: string;
-  }>;
+  const questions = safeJsonParse(quiz.questions, []) as QuizQuestion[];
 
   const results = questions.map((q, i) => ({
     number: i + 1,
@@ -131,6 +184,7 @@ export async function PUT(request: Request) {
     correct_index: q.correct_index,
     correct: answers[i] === q.correct_index,
     explanation: q.explanation,
+    reference: q.reference || "",
   }));
 
   const score = results.filter((r) => r.correct).length;

@@ -278,8 +278,14 @@ export function quizPrompt(
 ): string {
   const guidance = {
     facil: "Preguntá definiciones, reconocimiento de conceptos y relaciones directas que aparecen en el material.",
-    media: "Preguntá sobre aplicación e interpretación de las relaciones entre conceptos del apunte. Incluí preguntas que requieran comparar institutos jurídicos mencionados en el material.",
-    dificil: "Planteá casos prácticos breves que exijan analizar y aplicar varios conceptos del apunte simultáneamente, como lo haría un examen final o libre universitario. Cada caso debe tener una resolución fundamentada en el material.",
+    media:
+      "Incluí casos breves que requieran APLICAR una regla, DISTINGUIR conceptos similares o COMPARAR institutos del material. " +
+      "El contexto del caso debe ser necesario para resolver la pregunta, no decorativo. " +
+      "NO agregues personajes ni situaciones ('un abogado pregunta...', 'María quiere saber...') que no cambien la pregunta. " +
+      "Si el caso no altera qué concepto se evalúa, es una pregunta de memoria disfrazada: reformulala.",
+    dificil:
+      "Planteá casos prácticos que exijan analizar y aplicar varios conceptos simultáneamente, como un examen final. " +
+      "Cada caso debe tener una resolución fundamentada en el material.",
   }[difficulty];
 
   const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
@@ -298,12 +304,28 @@ export function quizPrompt(
   return (
     `${BASE_RULES} ${examInstruction}` +
     `Creá exactamente ${QUESTION_COUNT} preguntas de opción múltiple, nivel ${difficulty}, ` +
-    "como un examen universitario de abogacía basado exclusivamente en el apunte. " +
-    `${guidance} Cada pregunta debe tener cuatro opciones plausibles y una sola correcta. ` +
-    "Las opciones incorrectas deben ser verosímiles para un estudiante que no estudió bien (cambiá un plazo, un sujeto, una consecuencia jurídica). " +
-    "Variá la posición de la respuesta correcta. " +
-    "Escribí una explicación breve y precisa basada en el apunte para cada respuesta, citando el artículo o concepto relevante si está en el material. " +
-    "No inventes normas, artículos, citas ni jurisprudencia que no estén en el apunte. " +
+    "como un examen universitario de abogacía basado exclusivamente en el apunte.\n" +
+    `${guidance}\n\n` +
+    "REGLAS DE CALIDAD:\n" +
+    "1. CONSISTENCIA: El enunciado, las opciones, la respuesta correcta y la explicación deben referirse al MISMO ámbito jurídico. " +
+    "Si preguntás por una norma provincial, las opciones deben ser normas provinciales. No mezcles artículos de la CN con legislación provincial ni viceversa.\n" +
+    "2. UNA SOLA RESPUESTA: Debe haber EXACTAMENTE una opción correcta. Las otras tres deben ser claramente incorrectas según el material. " +
+    "Si varias opciones son defendibles (ej: preguntás qué forma de Estado implica descentralización y ofrecés federal, confederado y regional), descartá esa pregunta.\n" +
+    "3. RESPUESTA PRESENTE: La respuesta correcta DEBE estar entre las 4 opciones. Verificá antes de incluir la pregunta.\n" +
+    "4. FIDELIDAD: No inventes normas, fechas, atribuciones ni explicaciones que no estén en el apunte. " +
+    "Si el material dice que algo ocurrió en 1957, no pongas 1956. Verificá cada dato contra el material.\n" +
+    "5. DISTRACTORES: Las opciones incorrectas deben ser plausibles pero claramente incorrectas bajo el enunciado. " +
+    "Cambiá un dato concreto (plazo, sujeto, consecuencia), no uses opciones que también podrían ser correctas.\n" +
+    "6. REFERENCIA: En la explicación, citá el fragmento o concepto del material que respalda la respuesta.\n" +
+    "7. AMBIGÜEDAD: Si el material es ambiguo, contradictorio o insuficiente para formular una pregunta clara, no la incluyas. Elegí otro tema.\n" +
+    "8. VARIEDAD: Variá la posición de la respuesta correcta. Cubrí distintos temas del material.\n\n" +
+    "AUTOVALIDACIÓN — Antes de incluir cada pregunta, verificá:\n" +
+    "- ¿El enunciado está respaldado por el material?\n" +
+    "- ¿La respuesta correcta está entre las opciones?\n" +
+    "- ¿Hay exactamente una opción defendible?\n" +
+    "- ¿Coinciden jurisdicción, artículo, fecha y concepto entre enunciado y opciones?\n" +
+    "- ¿La explicación justifica la respuesta con referencia al material?\n" +
+    "Si falla alguna comprobación, descartá la pregunta y generá otra.\n\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>${previous}` +
     syllabusBlock(syllabus)
@@ -688,7 +710,7 @@ export const quizSchema = {
       items: {
         type: "object" as const,
         additionalProperties: false,
-        required: ["statement", "options", "correct_index", "explanation"],
+        required: ["statement", "options", "correct_index", "explanation", "reference"],
         properties: {
           statement: { type: "string" as const },
           options: {
@@ -699,6 +721,7 @@ export const quizSchema = {
           },
           correct_index: { type: "integer" as const, minimum: 0, maximum: 3 },
           explanation: { type: "string" as const },
+          reference: { type: "string" as const },
         },
       },
     },

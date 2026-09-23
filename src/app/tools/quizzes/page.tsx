@@ -23,6 +23,7 @@ interface GradeResult {
   correct_index: number;
   correct: boolean;
   explanation: string;
+  reference: string;
 }
 
 interface QuizData {
@@ -108,7 +109,7 @@ export default function QuizzesPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setQuiz(data);
-      setAnswers(new Array(10).fill(null));
+      setAnswers(new Array(data.questions.length).fill(null));
       setTimeLeft(EXAM_MINUTES[difficulty] * 60);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al generar");
@@ -346,9 +347,14 @@ export default function QuizzesPage() {
                       </p>
                     ))}
                   </div>
-                  <p className="text-gray-700 text-sm mt-2 italic border-l-2 border-primary-300 pl-3">
+                  <p className="text-gray-700 dark:text-gray-300 text-sm mt-2 italic border-l-2 border-primary-300 pl-3">
                     {r.explanation}
                   </p>
+                  {r.reference && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-3">
+                      Ref: {r.reference}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
