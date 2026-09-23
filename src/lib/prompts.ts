@@ -273,23 +273,64 @@ export const unitOutlineSchema = {
 
 const QUESTION_COUNT = 10;
 
+// ── Extracción de temas para distribución de preguntas ──
+
+export function quizTopicsPrompt(text: string): string {
+  return (
+    `${BASE_RULES} ` +
+    "Extraé los temas y subtemas principales del apunte. " +
+    "Cada tema debe ser un bloque temático distinto del material (ej: 'Formas de Estado', 'Fuentes del derecho', 'Principios republicanos'). " +
+    "Para cada tema, listá 2-4 puntos clave que el material desarrolla. " +
+    "Devolvé únicamente JSON conforme al esquema.\n" +
+    `<apunte>\n${text}\n</apunte>`
+  );
+}
+
+export const quizTopicsSchema = {
+  type: "object" as const,
+  additionalProperties: false,
+  required: ["topics"],
+  properties: {
+    topics: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        additionalProperties: false,
+        required: ["name", "key_points"],
+        properties: {
+          name: { type: "string" as const },
+          key_points: { type: "array" as const, items: { type: "string" as const } },
+        },
+      },
+    },
+  },
+};
+
+// ── Generación de preguntas ──
+
 export function quizPrompt(
   text: string,
   difficulty: "facil" | "media" | "dificil",
   avoidQuestions: string[] = [],
   examType?: ExamType,
-  syllabus?: string
+  syllabus?: string,
+  topics?: string[]
 ): string {
   const guidance = {
-    facil: "Preguntá definiciones, reconocimiento de conceptos y relaciones directas que aparecen en el material.",
+    facil:
+      "Nivel FÁCIL: reconocimiento de definiciones, identificación directa de conceptos, " +
+      "relaciones autor-concepto o artículo-concepto que aparezcan explícitamente en el material.",
     media:
-      "Incluí casos breves que requieran APLICAR una regla, DISTINGUIR conceptos similares o COMPARAR institutos del material. " +
+      "Nivel MEDIO: relaciones ENTRE conceptos, diferencias, clasificaciones, " +
+      "consecuencias expresamente presentes en el material, aplicar una definición a un ejemplo simple. " +
       "El contexto del caso debe ser necesario para resolver la pregunta, no decorativo. " +
-      "NO agregues personajes ni situaciones ('un abogado pregunta...', 'María quiere saber...') que no cambien la pregunta. " +
-      "Si el caso no altera qué concepto se evalúa, es una pregunta de memoria disfrazada: reformulala.",
+      "NO agregues personajes ni situaciones ('un abogado pregunta...') que no cambien la pregunta. " +
+      "Si la pregunta se puede resolver sin el contexto del caso, es memoria disfrazada: reformulala.",
     dificil:
-      "Planteá casos prácticos que exijan analizar y aplicar varios conceptos simultáneamente, como un examen final. " +
-      "Cada caso debe tener una resolución fundamentada en el material.",
+      "Nivel DIFÍCIL: casos breves que integren 2-3 conceptos del material, " +
+      "comparación entre conceptos similares (ej: federal vs confederal), " +
+      "detectar la categoría correcta en una situación, " +
+      "distractores que sean conceptos cercanos pero incorrectos bajo el enunciado.",
   }[difficulty];
 
   const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
@@ -305,31 +346,54 @@ export function quizPrompt(
       "\n</preguntas_anteriores>";
   }
 
+  let topicsBlock = "";
+  if (topics && topics.length > 0) {
+    topicsBlock =
+      "\n\nDISTRIBUCIÓN TEMÁTICA — El material tiene estos temas principales: " +
+      topics.join(", ") + ". " +
+      "Distribuí las 10 preguntas entre estos temas. No hagas más de 2 preguntas sobre el mismo tema. " +
+      "Si hay más temas que preguntas, priorizá los más desarrollados en el material.";
+  }
+
   return (
     `${BASE_RULES} ${examInstruction}` +
     `Creá exactamente ${QUESTION_COUNT} preguntas de opción múltiple, nivel ${difficulty}, ` +
     "como un examen universitario de abogacía basado exclusivamente en el apunte.\n" +
-    `${guidance}\n\n` +
-    "REGLAS DE CALIDAD:\n" +
-    "1. CONSISTENCIA: El enunciado, las opciones, la respuesta correcta y la explicación deben referirse al MISMO ámbito jurídico. " +
-    "Si preguntás por una norma provincial, las opciones deben ser normas provinciales. No mezcles artículos de la CN con legislación provincial ni viceversa.\n" +
-    "2. UNA SOLA RESPUESTA: Debe haber EXACTAMENTE una opción correcta. Las otras tres deben ser claramente incorrectas según el material. " +
-    "Si varias opciones son defendibles (ej: preguntás qué forma de Estado implica descentralización y ofrecés federal, confederado y regional), descartá esa pregunta.\n" +
-    "3. RESPUESTA PRESENTE: La respuesta correcta DEBE estar entre las 4 opciones. Verificá antes de incluir la pregunta.\n" +
-    "4. FIDELIDAD: No inventes normas, fechas, atribuciones ni explicaciones que no estén en el apunte. " +
-    "Si el material dice que algo ocurrió en 1957, no pongas 1956. Verificá cada dato contra el material.\n" +
-    "5. DISTRACTORES: Las opciones incorrectas deben ser plausibles pero claramente incorrectas bajo el enunciado. " +
-    "Cambiá un dato concreto (plazo, sujeto, consecuencia), no uses opciones que también podrían ser correctas.\n" +
-    "6. REFERENCIA: En la explicación, citá el fragmento o concepto del material que respalda la respuesta.\n" +
-    "7. AMBIGÜEDAD: Si el material es ambiguo, contradictorio o insuficiente para formular una pregunta clara, no la incluyas. Elegí otro tema.\n" +
-    "8. VARIEDAD: Variá la posición de la respuesta correcta. Cubrí distintos temas del material.\n\n" +
-    "AUTOVALIDACIÓN — Antes de incluir cada pregunta, verificá:\n" +
-    "- ¿El enunciado está respaldado por el material?\n" +
-    "- ¿La respuesta correcta está entre las opciones?\n" +
-    "- ¿Hay exactamente una opción defendible?\n" +
-    "- ¿Coinciden jurisdicción, artículo, fecha y concepto entre enunciado y opciones?\n" +
-    "- ¿La explicación justifica la respuesta con referencia al material?\n" +
-    "Si falla alguna comprobación, descartá la pregunta y generá otra.\n\n" +
+    `${guidance}\n` +
+    topicsBlock + "\n\n" +
+    "REGLAS OBLIGATORIAS:\n\n" +
+    "1. SOURCE GROUNDING\n" +
+    "La pregunta, la respuesta correcta y su explicación deben estar respaldadas por el documento fuente. " +
+    "En el campo source_fragment, copiá textualmente el fragmento del material que respalda la respuesta (entre 10 y 80 palabras). " +
+    "Si no encontrás un fragmento que respalde la pregunta, no la generes.\n\n" +
+    "2. UNA SOLA RESPUESTA CORRECTA\n" +
+    "Exactamente 1 opción inequívocamente correcta y 3 inequívocamente incorrectas según el material. " +
+    "Antes de incluir la pregunta, preguntate: '¿Podría alguna otra opción también considerarse correcta según la fuente?' " +
+    "Si la respuesta es sí, descartá la pregunta.\n\n" +
+    "3. NO CIRCULARIDAD\n" +
+    "La respuesta no puede ser una repetición o paráfrasis directa de la pregunta. " +
+    "MAL: '¿Qué competencias se reservan a los estados?' → 'Las competencias reservadas a los estados'. " +
+    "BIEN: '¿Qué competencias se reservan a los estados?' → 'Seguridad interior, educación y justicia local'.\n\n" +
+    "4. NO INVENTAR\n" +
+    "No generar: definiciones no incluidas en la fuente; ejemplos externos; fechas no presentes; " +
+    "artículos no presentes; relaciones causales no establecidas; interpretaciones del modelo. " +
+    "Si el material solo MENCIONA un artículo sin desarrollar su contenido, no preguntes qué establece.\n\n" +
+    "5. TERMINOLOGÍA\n" +
+    "Conservar exactamente los términos del material. No reemplazar conceptos específicos por aproximaciones " +
+    "(ej: no usar 'democracia directa' si el material dice 'democracia semidirecta').\n\n" +
+    "6. DISTRACTORES PLAUSIBLES\n" +
+    "Las opciones incorrectas deben provenir de conceptos cercanos del mismo material. " +
+    "Cambiar un dato concreto (plazo, sujeto, consecuencia, jurisdicción). " +
+    "Evitar opciones absurdas o de materias completamente distintas. " +
+    "Evitar que dos opciones sean ambas correctas (ej: federal Y confederal como formas descentralizadas).\n\n" +
+    "7. ARTÍCULOS Y NORMAS\n" +
+    "Si una pregunta involucra un artículo: verificar que la fuente realmente vincule ese artículo con la afirmación. " +
+    "No inferir qué 'establece' un artículo si el documento solamente lo menciona. " +
+    "Diferenciar entre 'según el material' y el contenido normativo real.\n\n" +
+    "8. OPTION ANALYSES\n" +
+    "Para cada opción, escribí en option_analyses por qué es correcta o incorrecta según el material. " +
+    "option_analyses[0] explica la opción 0, option_analyses[1] la opción 1, etc.\n\n" +
+    "Variá la posición de la respuesta correcta entre las 4 opciones.\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>${previous}` +
     syllabusBlock(syllabus)
@@ -714,7 +778,7 @@ export const quizSchema = {
       items: {
         type: "object" as const,
         additionalProperties: false,
-        required: ["statement", "options", "correct_index", "explanation", "reference"],
+        required: ["statement", "options", "correct_index", "explanation", "source_fragment", "concept", "option_analyses"],
         properties: {
           statement: { type: "string" as const },
           options: {
@@ -725,7 +789,14 @@ export const quizSchema = {
           },
           correct_index: { type: "integer" as const, minimum: 0, maximum: 3 },
           explanation: { type: "string" as const },
-          reference: { type: "string" as const },
+          source_fragment: { type: "string" as const },
+          concept: { type: "string" as const },
+          option_analyses: {
+            type: "array" as const,
+            minItems: 4,
+            maxItems: 4,
+            items: { type: "string" as const },
+          },
         },
       },
     },
@@ -734,25 +805,32 @@ export const quizSchema = {
 
 export function quizValidationPrompt(
   text: string,
-  questions: Array<{ statement: string; options: string[]; correct_index: number; explanation: string; reference: string }>
+  questions: Array<{ statement: string; options: string[]; correct_index: number; explanation: string; source_fragment: string }>
 ): string {
   const questionsBlock = questions
     .map(
       (q, i) =>
-        `[Pregunta ${i + 1}]\nEnunciado: ${q.statement}\nOpciones: ${q.options.map((o, j) => `${j}) ${o}`).join(" | ")}\nRespuesta marcada: opción ${q.correct_index}\nReferencia citada: ${q.reference}`
+        `[Pregunta ${i}]\nEnunciado: ${q.statement}\n` +
+        `Opciones: ${q.options.map((o, j) => `${j}) ${o}`).join(" | ")}\n` +
+        `Respuesta marcada: opción ${q.correct_index} (${q.options[q.correct_index]})\n` +
+        `Fragmento fuente citado: "${q.source_fragment}"`
     )
     .join("\n\n");
 
   return (
-    "Sos un verificador de calidad de preguntas de examen universitario de derecho argentino.\n\n" +
-    "Te doy un apunte y un conjunto de preguntas generadas a partir de ese apunte. " +
-    "Para CADA pregunta, verificá:\n" +
-    "1. REFERENCIA PRESENTE: ¿La referencia citada aparece textualmente o como paráfrasis fiel en el apunte? Si cita un artículo, ¿el apunte menciona ese artículo?\n" +
-    "2. REFERENCIA RESPALDA: ¿La referencia citada REALMENTE justifica que la opción marcada sea correcta? No basta con que sea del mismo tema.\n" +
-    "3. UNA SOLA CORRECTA: ¿Hay exactamente una opción defendible bajo el enunciado? Si dos o más opciones podrían ser correctas, marcá como inválida.\n" +
-    "4. CONSISTENCIA: ¿Coinciden jurisdicción, nivel normativo, fecha y concepto entre enunciado, opciones y referencia?\n" +
-    "5. DATOS NO INVENTADOS: ¿La pregunta atribuye información que NO está en el apunte (fechas, artículos, consecuencias)?\n\n" +
-    "Para cada pregunta, respondé con valid: true si pasa las 5 verificaciones, o valid: false con el motivo.\n\n" +
+    "Sos un verificador independiente de calidad de preguntas de examen. " +
+    "NO confíes en el generador: evaluá cada pregunta por tu cuenta contra el apunte.\n\n" +
+    "Para CADA pregunta, evaluá estos 8 criterios:\n\n" +
+    "1. source_supported: ¿El fragmento fuente citado aparece textualmente o como paráfrasis fiel en el apunte?\n" +
+    "2. exactly_one_correct: ¿Hay exactamente UNA opción defendible? Si dos o más podrían ser correctas según el material, es false.\n" +
+    "3. unambiguous: ¿El enunciado es claro y tiene una sola interpretación razonable?\n" +
+    "4. answer_matches_question: ¿La respuesta marcada responde exactamente a lo que se pregunta? (No es circular ni tangencial)\n" +
+    "5. no_external_knowledge: ¿Se puede responder usando SOLO el material, sin conocimiento externo?\n" +
+    "6. distractors_plausible: ¿Los distractores son plausibles pero claramente incorrectos? (No son absurdos ni demasiado obvios)\n" +
+    "7. no_invented_data: ¿Todos los datos (fechas, artículos, atribuciones) están en el material?\n" +
+    "8. not_circular: ¿La respuesta demuestra conocimiento real, no repite la pregunta con otras palabras?\n\n" +
+    "approved = true SOLO si los 8 criterios son true.\n" +
+    "Si approved = false, explicá brevemente el motivo en reason.\n\n" +
     `<apunte>\n${text}\n</apunte>\n\n` +
     `<preguntas>\n${questionsBlock}\n</preguntas>`
   );
@@ -768,10 +846,30 @@ export const quizValidationSchema = {
       items: {
         type: "object" as const,
         additionalProperties: false,
-        required: ["question_index", "valid", "reason"],
+        required: [
+          "question_index",
+          "source_supported",
+          "exactly_one_correct",
+          "unambiguous",
+          "answer_matches_question",
+          "no_external_knowledge",
+          "distractors_plausible",
+          "no_invented_data",
+          "not_circular",
+          "approved",
+          "reason",
+        ],
         properties: {
           question_index: { type: "integer" as const },
-          valid: { type: "boolean" as const },
+          source_supported: { type: "boolean" as const },
+          exactly_one_correct: { type: "boolean" as const },
+          unambiguous: { type: "boolean" as const },
+          answer_matches_question: { type: "boolean" as const },
+          no_external_knowledge: { type: "boolean" as const },
+          distractors_plausible: { type: "boolean" as const },
+          no_invented_data: { type: "boolean" as const },
+          not_circular: { type: "boolean" as const },
+          approved: { type: "boolean" as const },
           reason: { type: "string" as const },
         },
       },

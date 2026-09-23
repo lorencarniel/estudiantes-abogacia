@@ -23,7 +23,9 @@ interface GradeResult {
   correct_index: number;
   correct: boolean;
   explanation: string;
-  reference: string;
+  source_fragment: string;
+  concept: string;
+  option_analyses: string[];
 }
 
 interface QuizData {
@@ -174,7 +176,7 @@ export default function QuizzesPage() {
           <span className="text-3xl">📝</span> Cuestionarios
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Simulacro de examen con 10 preguntas de opción múltiple, corrección automática y explicaciones.
+          Simulacro de examen con preguntas de opción múltiple, corrección automática y explicaciones.
         </p>
       </div>
 
@@ -240,14 +242,14 @@ export default function QuizzesPage() {
 
       {quiz && !results && (
         <div className="card">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Simulacro</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Simulacro</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {DIFFICULTY_LABELS[quiz.difficulty]} &middot; {quiz.questions.length} preguntas
               </p>
             </div>
-            <div className={`text-2xl font-mono font-bold ${timeLeft < 60 ? "text-red-600" : timeLeft < 180 ? "text-amber-600" : "text-gray-700"}`}>
+            <div className={`text-2xl font-mono font-bold ${timeLeft < 60 ? "text-red-600" : timeLeft < 180 ? "text-amber-600" : "text-gray-700 dark:text-gray-300"}`}>
               {formatTime(timeLeft)}
             </div>
           </div>
@@ -255,7 +257,7 @@ export default function QuizzesPage() {
           <div className="space-y-8">
             {quiz.questions.map((q, qi) => (
               <div key={qi}>
-                <p className="font-medium text-gray-900 mb-3">
+                <p className="font-medium text-gray-900 dark:text-white mb-3">
                   <span className="text-primary-600 font-bold">{q.number}.</span>{" "}
                   {q.statement}
                 </p>
@@ -265,8 +267,8 @@ export default function QuizzesPage() {
                       key={oi}
                       className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                         answers[qi] === oi
-                          ? "border-primary-500 bg-primary-50"
-                          : "border-gray-200 hover:bg-gray-50"
+                          ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
+                          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                       }`}
                     >
                       <input
@@ -280,7 +282,7 @@ export default function QuizzesPage() {
                         }}
                         className="mt-0.5"
                       />
-                      <span className="text-gray-700">{option}</span>
+                      <span className="text-gray-700 dark:text-gray-300">{option}</span>
                     </label>
                   ))}
                 </div>
@@ -288,7 +290,7 @@ export default function QuizzesPage() {
             ))}
           </div>
 
-          <div className="mt-8 pt-4 border-t border-gray-200 flex items-center justify-between">
+          <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <p className="text-sm text-gray-500">
               {answers.filter((a) => a !== null).length} de {quiz.questions.length} respondidas
             </p>
@@ -305,54 +307,68 @@ export default function QuizzesPage() {
 
       {results && (
         <div>
-          <div className={`card mb-6 ${results.passed ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+          <div className={`card mb-6 ${results.passed ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800" : "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"}`}>
             <div className="text-center">
               <p className="text-5xl font-bold mb-2">
                 {results.score}/{results.total}
               </p>
-              <p className={`text-lg font-semibold ${results.passed ? "text-green-700" : "text-red-700"}`}>
+              <p className={`text-lg font-semibold ${results.passed ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
                 {results.passed ? "Aprobado" : "No aprobado"}
               </p>
-              <p className="text-gray-600 text-sm mt-1">
-                Se necesitan 7 respuestas correctas para aprobar
+              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+                Se necesitan {Math.ceil(results.total * 0.7)} respuestas correctas para aprobar
               </p>
             </div>
           </div>
 
           <div className="card mb-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Corrección detallada</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Corrección detallada</h3>
             <div className="space-y-6">
               {results.results.map((r) => (
-                <div key={r.number} className={`p-4 rounded-lg border ${r.correct ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
-                  <p className="font-medium text-gray-900 mb-2">
-                    <span className={`font-bold ${r.correct ? "text-green-600" : "text-red-600"}`}>
-                      {r.number}. {r.correct ? "Correcto" : "Incorrecto"}
-                    </span>
-                    {" "}{r.statement}
-                  </p>
+                <div key={r.number} className={`p-4 rounded-lg border ${r.correct ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"}`}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      <span className={`font-bold ${r.correct ? "text-green-600" : "text-red-600"}`}>
+                        {r.number}. {r.correct ? "Correcto" : "Incorrecto"}
+                      </span>
+                      {" "}{r.statement}
+                    </p>
+                    {r.concept && (
+                      <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded shrink-0">
+                        {r.concept}
+                      </span>
+                    )}
+                  </div>
+
                   <div className="space-y-1 ml-4 text-sm">
                     {r.options.map((opt, oi) => (
-                      <p
-                        key={oi}
-                        className={`${
+                      <div key={oi}>
+                        <p className={`${
                           oi === r.correct_index
-                            ? "text-green-800 font-semibold"
+                            ? "text-green-800 dark:text-green-400 font-semibold"
                             : oi === r.selected && !r.correct
-                            ? "text-red-700 line-through"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        {oi === r.correct_index ? "✓" : oi === r.selected && !r.correct ? "✗" : "  "}{" "}
-                        {opt}
-                      </p>
+                            ? "text-red-700 dark:text-red-400 line-through"
+                            : "text-gray-600 dark:text-gray-400"
+                        }`}>
+                          {oi === r.correct_index ? "✓" : oi === r.selected && !r.correct ? "✗" : "  "}{" "}
+                          {opt}
+                        </p>
+                        {r.option_analyses?.[oi] && (oi === r.correct_index || (oi === r.selected && !r.correct)) && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-0.5 mb-1">
+                            {r.option_analyses[oi]}
+                          </p>
+                        )}
+                      </div>
                     ))}
                   </div>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm mt-2 italic border-l-2 border-primary-300 pl-3">
+
+                  <p className="text-gray-700 dark:text-gray-300 text-sm mt-3 italic border-l-2 border-primary-300 pl-3">
                     {r.explanation}
                   </p>
-                  {r.reference && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-3">
-                      Ref: {r.reference}
+
+                  {r.source_fragment && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 bg-gray-100 dark:bg-gray-800 rounded p-2">
+                      Fuente: &ldquo;{r.source_fragment}&rdquo;
                     </p>
                   )}
                 </div>

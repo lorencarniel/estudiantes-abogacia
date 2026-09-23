@@ -3,30 +3,21 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
-import { quizPrompt, quizSchema, quizValidationPrompt, quizValidationSchema, ExamType } from "@/lib/prompts";
+import {
+  quizTopicsPrompt,
+  quizTopicsSchema,
+  quizPrompt,
+  quizSchema,
+  quizValidationPrompt,
+  quizValidationSchema,
+  ExamType,
+} from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { addXP } from "@/lib/xp";
 import { safeJsonParse } from "@/lib/utils";
+import { type QuizQuestion, validateSyntax, isCircularQuestion } from "./validation";
 
-interface QuizQuestion {
-  statement: string;
-  options: string[];
-  correct_index: number;
-  explanation: string;
-  reference: string;
-}
-
-function validateQuestion(q: QuizQuestion): boolean {
-  if (!q.statement || q.statement.trim().length < 10) return false;
-  if (!Array.isArray(q.options) || q.options.length !== 4) return false;
-  if (q.options.some((o) => !o || o.trim().length === 0)) return false;
-  if (typeof q.correct_index !== "number" || q.correct_index < 0 || q.correct_index > 3) return false;
-  if (!q.explanation || q.explanation.trim().length < 5) return false;
-  if (!q.reference || q.reference.trim().length < 5) return false;
-  const unique = new Set(q.options.map((o) => o.trim().toLowerCase()));
-  if (unique.size < 4) return false;
-  return true;
-}
+// ── Route schemas ──
 
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
@@ -39,6 +30,8 @@ const gradeSchema = z.object({
   quizId: z.string().min(1),
   answers: z.array(z.number().int().min(0).max(3).nullable()).min(1).max(10),
 });
+
+// ── POST: Generate quiz ──
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -63,84 +56,117 @@ export async function POST(request: Request) {
   }
 
   try {
+    // STEP 1: Extract topics for distribution
+    let topics: string[] = [];
+    try {
+      const topicsResponse = await openai.chat.completions.create({
+        model: AI_MODEL,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: quizTopicsPrompt(text) },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "quiz_topics", strict: true, schema: quizTopicsSchema },
+        },
+        temperature: 0,
+        max_tokens: 2000,
+      });
+      const topicsContent = safeJsonParse(topicsResponse.choices?.[0]?.message?.content, { topics: [] });
+      topics = topicsContent.topics.map((t: { name: string }) => t.name);
+    } catch {
+      // Continue without topic distribution if extraction fails
+    }
+
+    // STEP 2: Generate questions
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: quizPrompt(text, difficulty, [], examType as ExamType | undefined, syllabusContent) },
+        {
+          role: "user",
+          content: quizPrompt(text, difficulty, [], examType as ExamType | undefined, syllabusContent, topics),
+        },
       ],
       response_format: {
         type: "json_schema",
         json_schema: { name: "exam", strict: true, schema: quizSchema },
       },
       temperature: 0.3,
-      max_tokens: 8000,
+      max_tokens: 12000,
     });
 
     const content = safeJsonParse(response.choices?.[0]?.message?.content, { questions: [] } as { questions: QuizQuestion[] });
 
-    let syntaxValid: QuizQuestion[] = [];
+    // STEP 3: Programmatic validation
+    let candidates: QuizQuestion[] = [];
     for (const q of content.questions) {
-      if (validateQuestion(q)) {
-        syntaxValid.push(q);
-      }
+      if (!validateSyntax(q)) continue;
+      if (isCircularQuestion(q)) continue;
+      candidates.push(q);
     }
 
-    // Second pass: semantic validation against the material
-    let semanticValid: QuizQuestion[] = [];
-    if (syntaxValid.length > 0) {
+    // STEP 4: Semantic validation (independent reviewer)
+    let approved: QuizQuestion[] = [];
+    if (candidates.length > 0) {
       try {
         const valResponse = await openai.chat.completions.create({
           model: AI_MODEL,
           messages: [
-            { role: "system", content: "Sos un verificador de calidad de exámenes de derecho argentino. Evaluá cada pregunta con rigor." },
-            { role: "user", content: quizValidationPrompt(text, syntaxValid) },
+            {
+              role: "system",
+              content: "Sos un verificador independiente de calidad de exámenes universitarios de derecho argentino. Evaluá con rigor.",
+            },
+            { role: "user", content: quizValidationPrompt(text, candidates) },
           ],
           response_format: {
             type: "json_schema",
             json_schema: { name: "quiz_validation", strict: true, schema: quizValidationSchema },
           },
           temperature: 0,
-          max_tokens: 4000,
+          max_tokens: 6000,
         });
 
         const valContent = safeJsonParse(valResponse.choices?.[0]?.message?.content, { results: [] } as {
-          results: Array<{ question_index: number; valid: boolean; reason: string }>;
+          results: Array<{ question_index: number; approved: boolean; reason: string }>;
         });
 
-        const invalidIndexes = new Set(
-          valContent.results.filter((r) => !r.valid).map((r) => r.question_index)
+        const rejectedIndexes = new Set(
+          valContent.results.filter((r) => !r.approved).map((r) => r.question_index)
         );
 
-        semanticValid = syntaxValid.filter((_, i) => !invalidIndexes.has(i));
+        approved = candidates.filter((_, i) => !rejectedIndexes.has(i));
       } catch {
-        semanticValid = syntaxValid;
+        approved = candidates;
       }
     }
 
-    // If too many were filtered, regenerate replacements
-    if (semanticValid.length < 10) {
-      const avoidList = semanticValid.map((q) => q.statement);
+    // STEP 5: Regenerate if not enough valid questions
+    if (approved.length < 10) {
+      const avoidList = approved.map((q) => q.statement);
       try {
         const retryResponse = await openai.chat.completions.create({
           model: AI_MODEL,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: quizPrompt(text, difficulty, avoidList, examType as ExamType | undefined, syllabusContent) },
+            {
+              role: "user",
+              content: quizPrompt(text, difficulty, avoidList, examType as ExamType | undefined, syllabusContent, topics),
+            },
           ],
           response_format: {
             type: "json_schema",
             json_schema: { name: "exam", strict: true, schema: quizSchema },
           },
           temperature: 0.3,
-          max_tokens: 8000,
+          max_tokens: 12000,
         });
 
         const retryContent = safeJsonParse(retryResponse.choices?.[0]?.message?.content, { questions: [] } as { questions: QuizQuestion[] });
         for (const q of retryContent.questions) {
-          if (semanticValid.length >= 10) break;
-          if (validateQuestion(q)) {
-            semanticValid.push(q);
+          if (approved.length >= 10) break;
+          if (validateSyntax(q) && !isCircularQuestion(q)) {
+            approved.push(q);
           }
         }
       } catch {
@@ -148,7 +174,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const finalQuestions = semanticValid.slice(0, 10);
+    const finalQuestions = approved.slice(0, 10);
 
     const quiz = await prisma.quizAttempt.create({
       data: {
@@ -165,22 +191,22 @@ export async function POST(request: Request) {
     return NextResponse.json({
       quizId: quiz.id,
       difficulty,
-      questions: finalQuestions.map(
-        (q, i) => ({
-          number: i + 1,
-          statement: q.statement,
-          options: q.options,
-        })
-      ),
+      questions: finalQuestions.map((q, i) => ({
+        number: i + 1,
+        statement: q.statement,
+        options: q.options,
+      })),
     });
   } catch (err) {
     console.error("Quiz generation error:", err);
     return NextResponse.json(
       { error: "No se pudo generar el cuestionario. Intentá de nuevo." },
-      { status: 502 }
+      { status: 502 },
     );
   }
 }
+
+// ── PUT: Grade quiz ──
 
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions);
@@ -203,7 +229,7 @@ export async function PUT(request: Request) {
   if (!quiz) {
     return NextResponse.json(
       { error: "Cuestionario no encontrado o ya entregado" },
-      { status: 404 }
+      { status: 404 },
     );
   }
 
@@ -217,11 +243,14 @@ export async function PUT(request: Request) {
     correct_index: q.correct_index,
     correct: answers[i] === q.correct_index,
     explanation: q.explanation,
-    reference: q.reference || "",
+    source_fragment: q.source_fragment || "",
+    concept: q.concept || "",
+    option_analyses: q.option_analyses || [],
   }));
 
   const score = results.filter((r) => r.correct).length;
-  const passed = score >= 7;
+  const total = questions.length;
+  const passed = score >= Math.ceil(total * 0.7);
 
   const updated = await prisma.quizAttempt.updateMany({
     where: { id: quizId, completedAt: null },
@@ -234,5 +263,5 @@ export async function PUT(request: Request) {
 
   addXP(session.user.id, "quiz_complete").catch(() => {});
   if (passed) addXP(session.user.id, "quiz_pass").catch(() => {});
-  return NextResponse.json({ score, total: 10, passed, results });
+  return NextResponse.json({ score, total, passed, results });
 }
