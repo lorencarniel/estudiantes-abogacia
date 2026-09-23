@@ -1330,39 +1330,51 @@ export function compareConceptsPrompt(text: string, syllabus?: string): string {
     "debe estar respaldada por el texto del apunte. No uses conocimiento general del modelo para " +
     "completar, corregir o ampliar lo que dice la fuente.\n\n" +
     "2. COBERTURA PREVIA: Antes de comparar, evaluá si cada concepto está suficientemente " +
-    "desarrollado en el material. Si un concepto solo se MENCIONA pero no se DESARROLLA, " +
-    "indicalo en el campo warnings y hacé una comparación parcial. No inventes definiciones " +
-    "a partir del nombre del concepto.\n\n" +
+    "desarrollado en el material. Un concepto está 'desarrollado' cuando la fuente lo define, " +
+    "enumera características o lo describe con detalle propio. Si solo se MENCIONA de pasada " +
+    "(ej: aparece en una enumeración o como referencia), marcá concept_X_supported = false. " +
+    "Si NINGUNO de los dos conceptos está desarrollado, NO generes la comparación: " +
+    "devolvé un objeto con ambos supported=false, differences y similarities vacíos, y un " +
+    "warning: 'Comparación limitada: el material identifica ambos conceptos pero no aporta " +
+    "información suficiente para compararlos en detalle.' " +
+    "No inventes definiciones a partir del nombre del concepto.\n\n" +
     "3. DIFERENCIAS RESPALDADAS: Una diferencia solo puede incluirse cuando la fuente establece " +
     "un atributo para el Concepto A Y un atributo diferente o contrapuesto para el Concepto B. " +
     "No inferir diferencias que el material no establece. Cada diferencia debe incluir el " +
-    "fragmento fuente que la respalda (source_a y source_b).\n\n" +
-    "4. SEMEJANZAS CONCRETAS: No generar semejanzas genéricas como 'ambos buscan el buen " +
+    "fragmento fuente que la respalda (source_a y source_b) y la sección del documento de " +
+    "donde se extrajo (source_section_a y source_section_b).\n\n" +
+    "4. ATRIBUCIÓN POR SECCIÓN: Cada fragmento fuente debe provenir de la sección del documento " +
+    "que efectivamente trata ese concepto. NO tomar contenido de una sección sobre un tema " +
+    "diferente (ej: 'Estados regionales') y asignarlo a otro concepto (ej: 'Confederación') " +
+    "solo porque parece relacionado semánticamente. source_section debe ser el título o " +
+    "encabezado de la sección real del apunte donde aparece el fragmento.\n\n" +
+    "5. SEMEJANZAS CONCRETAS: No generar semejanzas genéricas como 'ambos buscan el buen " +
     "funcionamiento del Estado' o 'ambos son importantes para la organización política'. " +
     "Las semejanzas deben ser atributos concretos compartidos según la fuente. Si no hay " +
     "semejanzas explícitas o razonablemente demostrables, devolvé el array vacío.\n\n" +
-    "5. DEFINICIONES FIELES: Si la fuente define el concepto, usá esa definición o una " +
+    "6. DEFINICIONES FIELES: Si la fuente define el concepto, usá esa definición o una " +
     "reformulación fiel. Si solo lo menciona sin definirlo, poné en la definición: " +
     "'El material menciona este concepto pero no proporciona una definición.' " +
-    "No fabricar definiciones a partir del nombre.\n\n" +
-    "6. NORMATIVA VINCULADA: La sección de normativa aparece SOLO cuando la fuente vincula " +
+    "No fabricar definiciones a partir del nombre. No usar frases genéricas como " +
+    "'es la rama del derecho que…' o 'el pueblo ejerce el poder…' si no son textuales.\n\n" +
+    "7. NORMATIVA VINCULADA: La sección de normativa aparece SOLO cuando la fuente vincula " +
     "explícitamente una norma, artículo o ley con el concepto. No asignar artículos por " +
     "conocimiento externo. Distinguir 'El material vincula este concepto con el art. X' " +
     "de 'El art. X establece…'. Si no hay normativa vinculada, devolvé string vacío.\n\n" +
-    "7. EJEMPLOS: Si el apunte aporta un ejemplo, usalo y marcá example_type como 'source'. " +
+    "8. EJEMPLOS: Si el apunte aporta un ejemplo, usalo y marcá example_type como 'source'. " +
     "Si el apunte no aporta ejemplo, podés generar uno didáctico SOLO si no contradice el " +
     "material, y marcá example_type como 'didactic'. Nunca mezclar ambos tipos. " +
     "Nunca usar ejemplos factuales externos sin verificar (ej: 'Suiza es una confederación'). " +
     "Si no hay ejemplo de la fuente y no podés generar uno seguro, dejá example vacío.\n\n" +
-    "8. TERMINOLOGÍA JURÍDICA: No reemplazar términos jurídicos por expresiones aproximadas. " +
+    "9. TERMINOLOGÍA JURÍDICA: No reemplazar términos jurídicos por expresiones aproximadas. " +
     "Si la fuente dice 'imperium sobre los Estados', no convertirlo en 'el gobierno central " +
     "puede legislar sobre los Estados'. Usá la terminología exacta de la fuente.\n\n" +
     "ESTRUCTURA POR COMPARACIÓN:\n" +
     "- concept_a, concept_b: nombres cortos\n" +
     "- concept_a_supported, concept_b_supported: si el concepto está suficientemente desarrollado\n" +
     "- definition_a, definition_b: definición según la fuente (o aviso si no hay)\n" +
-    "- differences: array de {aspect, concept_a_value, concept_b_value, source_a, source_b}\n" +
-    "- similarities: array de {statement, source_fragment} — vacío si no hay respaldadas\n" +
+    "- differences: array de {aspect, concept_a_value, concept_b_value, source_a, source_b, source_section_a, source_section_b}\n" +
+    "- similarities: array de {statement, source_fragment, source_section} — vacío si no hay respaldadas\n" +
     "- articles: normativa vinculada explícitamente — vacío si no hay\n" +
     "- example: texto del ejemplo — vacío si no hay\n" +
     "- example_type: 'source' | 'didactic' | 'none'\n" +
@@ -1403,13 +1415,15 @@ export const compareConceptsSchema: Record<string, unknown> = {
             items: {
               type: "object" as const,
               additionalProperties: false,
-              required: ["aspect", "concept_a_value", "concept_b_value", "source_a", "source_b"],
+              required: ["aspect", "concept_a_value", "concept_b_value", "source_a", "source_b", "source_section_a", "source_section_b"],
               properties: {
                 aspect: { type: "string" as const },
                 concept_a_value: { type: "string" as const },
                 concept_b_value: { type: "string" as const },
                 source_a: { type: "string" as const },
                 source_b: { type: "string" as const },
+                source_section_a: { type: "string" as const },
+                source_section_b: { type: "string" as const },
               },
             },
           },
@@ -1418,10 +1432,11 @@ export const compareConceptsSchema: Record<string, unknown> = {
             items: {
               type: "object" as const,
               additionalProperties: false,
-              required: ["statement", "source_fragment"],
+              required: ["statement", "source_fragment", "source_section"],
               properties: {
                 statement: { type: "string" as const },
                 source_fragment: { type: "string" as const },
+                source_section: { type: "string" as const },
               },
             },
           },
@@ -1444,18 +1459,26 @@ export function compareValidationPrompt(
     "Sos un verificador independiente de comparaciones de conceptos jurídicos para estudio universitario.\n\n" +
     "Recibís el material fuente y un conjunto de comparaciones generadas. " +
     "Para CADA comparación, verificá los siguientes criterios:\n\n" +
-    "1. concept_a_supported: ¿El concepto A está suficientemente desarrollado en la fuente?\n" +
-    "2. concept_b_supported: ¿El concepto B está suficientemente desarrollado en la fuente?\n" +
-    "3. definitions_supported: ¿Las definiciones reflejan fielmente la fuente (o indican ausencia)?\n" +
+    "1. concept_a_supported: ¿El concepto A está suficientemente desarrollado en la fuente (no solo mencionado)?\n" +
+    "2. concept_b_supported: ¿El concepto B está suficientemente desarrollado en la fuente (no solo mencionado)?\n" +
+    "3. definitions_supported: ¿Las definiciones reflejan fielmente la fuente? Una definición que usa " +
+    "frases genéricas como 'es la rama que…' o 'el pueblo ejerce…' sin que eso aparezca en el material " +
+    "debe marcarse como false.\n" +
     "4. differences_supported: ¿Cada diferencia tiene respaldo textual para ambos conceptos?\n" +
     "5. similarities_supported: ¿Cada semejanza es concreta y respaldada (no genérica inventada)?\n" +
     "6. normative_supported: ¿La normativa citada está vinculada explícitamente en la fuente?\n" +
     "7. example_correct: ¿El ejemplo es fiel a la fuente o no contradice el material?\n" +
-    "8. no_external_knowledge: ¿No se agregó conocimiento externo al modelo?\n" +
+    "8. no_external_knowledge: ¿No se usó conocimiento general del LLM para definir, diferenciar o " +
+    "ejemplificar conceptos que la fuente no desarrolla?\n" +
     "9. no_meaning_change: ¿No se alteró el significado de términos jurídicos?\n" +
     "10. no_invented_claims: ¿No hay afirmaciones fabricadas?\n" +
-    "11. no_generic_filler: ¿No hay contenido genérico solo para llenar la UI?\n\n" +
-    "Para cada comparación, devolvé los 11 booleanos, approved (true si todos pasan), " +
+    "11. no_generic_filler: ¿No hay contenido genérico solo para llenar la UI?\n" +
+    "12. source_sections_correct: ¿Cada source_section corresponde a la sección real del documento " +
+    "donde se trata ESE concepto? No debe haber contenido tomado de una sección sobre otro tema " +
+    "(ej: tomar datos de 'Estados regionales' y asignarlos a 'Confederación').\n" +
+    "13. no_cross_section_contamination: ¿No se asignó a un concepto información que el documento " +
+    "desarrolla bajo otro concepto o sección diferente?\n\n" +
+    "Para cada comparación, devolvé los 13 booleanos, approved (true si todos pasan), " +
     "y reason (explicación breve si no aprueba).\n\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${sourceText}\n</apunte>\n` +
@@ -1480,7 +1503,9 @@ export const compareValidationSchema: Record<string, unknown> = {
           "similarities_supported", "normative_supported",
           "example_correct", "no_external_knowledge",
           "no_meaning_change", "no_invented_claims",
-          "no_generic_filler", "approved", "reason",
+          "no_generic_filler", "source_sections_correct",
+          "no_cross_section_contamination",
+          "approved", "reason",
         ],
         properties: {
           comparison_index: { type: "integer" as const, minimum: 0 },
@@ -1495,6 +1520,8 @@ export const compareValidationSchema: Record<string, unknown> = {
           no_meaning_change: { type: "boolean" as const },
           no_invented_claims: { type: "boolean" as const },
           no_generic_filler: { type: "boolean" as const },
+          source_sections_correct: { type: "boolean" as const },
+          no_cross_section_contamination: { type: "boolean" as const },
           approved: { type: "boolean" as const },
           reason: { type: "string" as const },
         },

@@ -4,11 +4,14 @@ export interface ComparisonDifference {
   concept_b_value: string;
   source_a: string;
   source_b: string;
+  source_section_a: string;
+  source_section_b: string;
 }
 
 export interface ComparisonSimilarity {
   statement: string;
   source_fragment: string;
+  source_section: string;
 }
 
 export interface Comparison {
@@ -65,6 +68,47 @@ export function hasUnsourcedSimilarity(sim: ComparisonSimilarity): boolean {
   return sim.source_fragment.trim().length < 10;
 }
 
+export function hasCrossSectionContamination(
+  diff: ComparisonDifference,
+  conceptA: string,
+  conceptB: string,
+): boolean {
+  const sectionA = diff.source_section_a.trim().toLowerCase();
+  const sectionB = diff.source_section_b.trim().toLowerCase();
+
+  if (!sectionA || !sectionB) return false;
+
+  function sectionMatchesConcept(section: string, concept: string): boolean {
+    const c = concept.trim().toLowerCase();
+    if (section === c) return true;
+    const sWords = section.split(/[\s,;:./()]+/).filter((w) => w.length > 3);
+    const cWords = c.split(/[\s,;:./()]+/).filter((w) => w.length > 3);
+    return cWords.some((cw) => sWords.some((sw) => sw === cw));
+  }
+
+  if (!sectionMatchesConcept(sectionA, conceptA)) return true;
+  if (!sectionMatchesConcept(sectionB, conceptB)) return true;
+
+  return false;
+}
+
+export function hasGenericDefinition(definition: string): boolean {
+  const patterns = [
+    /^es la rama del derecho que/i,
+    /^es la rama que/i,
+    /^es el conjunto de normas que/i,
+    /^el pueblo ejerce el poder/i,
+    /^el pueblo elige representantes/i,
+    /^forma de gobierno en la que/i,
+    /^sistema de gobierno donde/i,
+    /^régimen político que/i,
+    /^se refiere a la capacidad de/i,
+    /^es aquella en la que/i,
+    /^consiste en la posibilidad de/i,
+  ];
+  return patterns.some((p) => p.test(definition.trim()));
+}
+
 export function validateComparison(c: Comparison): {
   valid: boolean;
   filteredDifferences: ComparisonDifference[];
@@ -73,9 +117,20 @@ export function validateComparison(c: Comparison): {
 } {
   const addedWarnings: string[] = [];
 
+  if (hasGenericDefinition(c.definition_a)) {
+    addedWarnings.push(`Definición de "${c.concept_a}" parece genérica (no proviene del material). Verificar.`);
+  }
+  if (hasGenericDefinition(c.definition_b)) {
+    addedWarnings.push(`Definición de "${c.concept_b}" parece genérica (no proviene del material). Verificar.`);
+  }
+
   const filteredDifferences = c.differences.filter((d) => {
     if (hasUnsourcedDifference(d)) {
       addedWarnings.push(`Diferencia "${d.aspect}" descartada por falta de respaldo textual.`);
+      return false;
+    }
+    if (hasCrossSectionContamination(d, c.concept_a, c.concept_b)) {
+      addedWarnings.push(`Diferencia "${d.aspect}" descartada: la fuente proviene de una sección sobre otro concepto.`);
       return false;
     }
     return true;

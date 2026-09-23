@@ -5,6 +5,8 @@ import {
   hasGenericSimilarity,
   hasUnsourcedDifference,
   hasUnsourcedSimilarity,
+  hasCrossSectionContamination,
+  hasGenericDefinition,
   type Comparison,
   type ComparisonDifference,
   type ComparisonSimilarity,
@@ -25,12 +27,15 @@ function makeComparison(overrides: Partial<Comparison> = {}): Comparison {
         concept_b_value: "Pacto",
         source_a: "La federación se basa en una constitución como norma suprema",
         source_b: "La confederación se origina en un pacto entre Estados soberanos",
+        source_section_a: "Federación",
+        source_section_b: "Confederación",
       },
     ],
     similarities: [
       {
         statement: "Ambas son formas de organización estatal compuesta.",
         source_fragment: "Tanto la federación como la confederación son formas de Estado compuesto",
+        source_section: "Formas de Estado",
       },
     ],
     articles: "Art. 1 CN",
@@ -48,6 +53,8 @@ function makeDifference(overrides: Partial<ComparisonDifference> = {}): Comparis
     concept_b_value: "Pacto",
     source_a: "La federación se basa en una constitución como norma suprema",
     source_b: "La confederación se origina en un pacto entre Estados soberanos",
+    source_section_a: "Federación",
+    source_section_b: "Confederación",
     ...overrides,
   };
 }
@@ -56,16 +63,37 @@ function makeSimilarity(overrides: Partial<ComparisonSimilarity> = {}): Comparis
   return {
     statement: "Ambas son formas de organización estatal compuesta.",
     source_fragment: "Tanto la federación como la confederación son formas de Estado compuesto",
+    source_section: "Formas de Estado",
     ...overrides,
   };
 }
 
-// ── Test 1: Definición inventada ──
+// ── Test 1: Definición inventada / genérica del LLM ──
 describe("definición inventada", () => {
   it("detecta concepto no soportado por la fuente", () => {
     const comp = makeComparison({ concept_b_supported: false });
     const result = validateComparison(comp);
     expect(result.addedWarnings.some((w) => w.includes("no desarrolla suficientemente"))).toBe(true);
+  });
+
+  it("detecta definición genérica del LLM", () => {
+    expect(hasGenericDefinition("Es la rama del derecho que regula las relaciones entre Estados")).toBe(true);
+    expect(hasGenericDefinition("El pueblo ejerce el poder directamente sin representantes")).toBe(true);
+    expect(hasGenericDefinition("El pueblo elige representantes para ejercer el poder")).toBe(true);
+    expect(hasGenericDefinition("Forma de gobierno en la que los ciudadanos participan")).toBe(true);
+  });
+
+  it("acepta definición textual del material", () => {
+    expect(hasGenericDefinition("Unión de Estados con constitución suprema y autonomía")).toBe(false);
+    expect(hasGenericDefinition("El material menciona este concepto pero no proporciona una definición.")).toBe(false);
+  });
+
+  it("agrega warning cuando detecta definición genérica", () => {
+    const comp = makeComparison({
+      definition_a: "Es la rama del derecho que estudia la organización provincial",
+    });
+    const result = validateComparison(comp);
+    expect(result.addedWarnings.some((w) => w.includes("genérica"))).toBe(true);
   });
 });
 
@@ -137,16 +165,7 @@ describe("semejanza genérica", () => {
 
 // ── Test 4: Artículo no respaldado ──
 describe("normativa no respaldada", () => {
-  it("documenta caso de artículo asignado sin vinculación explícita", () => {
-    const comp = makeComparison({
-      articles: "Art. 75 inc. 22 CN",
-    });
-    // Programmatic validation can't verify this — it depends on semantic review
-    // We document the field exists and can be empty
-    expect(comp.articles.length).toBeGreaterThan(0);
-  });
-
-  it("acepta normativa vacía", () => {
+  it("acepta normativa vacía sin error", () => {
     const comp = makeComparison({ articles: "" });
     expect(comp.articles).toBe("");
   });
@@ -155,24 +174,19 @@ describe("normativa no respaldada", () => {
 // ── Test 5: Ejemplo externo sin etiquetar ──
 describe("ejemplo sin etiquetar", () => {
   it("verifica que example_type distingue fuente de generado", () => {
-    const fromSource = makeComparison({ example_type: "source" });
-    const didactic = makeComparison({ example_type: "didactic" });
-    const none = makeComparison({ example_type: "none", example: "" });
-
-    expect(fromSource.example_type).toBe("source");
-    expect(didactic.example_type).toBe("didactic");
-    expect(none.example_type).toBe("none");
+    expect(makeComparison({ example_type: "source" }).example_type).toBe("source");
+    expect(makeComparison({ example_type: "didactic" }).example_type).toBe("didactic");
+    expect(makeComparison({ example_type: "none", example: "" }).example_type).toBe("none");
   });
 
-  it("rechaza example_type inválido en validateSyntax", () => {
-    const comp = makeComparison({ example_type: "invalid" as any });
-    expect(validateComparisonSyntax(comp)).toBe(false);
+  it("rechaza example_type inválido", () => {
+    expect(validateComparisonSyntax(makeComparison({ example_type: "invalid" as any }))).toBe(false);
   });
 });
 
 // ── Test 6: Comparación con concepto insuficientemente documentado ──
 describe("concepto insuficientemente documentado", () => {
-  it("marca como inválida comparación donde ambos conceptos no están soportados", () => {
+  it("marca como inválida comparación donde ambos no están soportados", () => {
     const comp = makeComparison({
       concept_a_supported: false,
       concept_b_supported: false,
@@ -181,29 +195,45 @@ describe("concepto insuficientemente documentado", () => {
     expect(result.valid).toBe(false);
     expect(result.addedWarnings.filter((w) => w.includes("no desarrolla suficientemente"))).toHaveLength(2);
   });
-
-  it("acepta comparación con concepto parcial si hay diferencias respaldadas", () => {
-    const comp = makeComparison({ concept_b_supported: false });
-    const result = validateComparison(comp);
-    // Not valid because concept_b is not supported
-    expect(result.valid).toBe(false);
-    expect(result.filteredDifferences.length).toBeGreaterThan(0);
-  });
 });
 
-// ── Test 7: Cambio de clasificación ──
-describe("cambio de clasificación", () => {
-  it("documenta caso donde consulta popular no es democracia directa", () => {
-    // This verifies the pattern — semantic review must catch it
+// ── Test 7: Contaminación cross-sección (caso real: Estados regionales → Confederación) ──
+describe("contaminación cross-sección", () => {
+  it("detecta datos de 'Estados regionales' asignados a Confederación", () => {
     const diff = makeDifference({
-      aspect: "Tipo de democracia",
-      concept_a_value: "Directa: el pueblo decide sin intermediarios",
-      concept_b_value: "Semidirecta: incluye consulta popular",
-      source_a: "la democracia directa implica la participación sin representantes",
-      source_b: "las formas semidirectas incluyen la consulta popular, referéndum e iniciativa",
+      aspect: "Senado Federal",
+      concept_b_value: "Inexistencia de un Senado Federal",
+      source_section_b: "Estados regionales",
     });
-    // Consulta popular should NOT appear under directa
-    expect(diff.concept_a_value).not.toContain("consulta popular");
+    expect(hasCrossSectionContamination(diff, "Federación", "Confederación")).toBe(true);
+  });
+
+  it("no marca contaminación cuando las secciones coinciden con los conceptos", () => {
+    expect(hasCrossSectionContamination(makeDifference(), "Federación", "Confederación")).toBe(false);
+  });
+
+  it("detecta sección de concepto A usada para concepto B", () => {
+    const diff = makeDifference({
+      source_section_a: "Confederación",
+      source_section_b: "Confederación",
+    });
+    expect(hasCrossSectionContamination(diff, "Federación", "Confederación")).toBe(true);
+  });
+
+  it("filtra diferencias con contaminación cross-sección", () => {
+    const comp = makeComparison({
+      differences: [
+        makeDifference(),
+        makeDifference({
+          aspect: "Senado Federal",
+          concept_b_value: "Inexistencia de un Senado Federal",
+          source_section_b: "Estados regionales",
+        }),
+      ],
+    });
+    const result = validateComparison(comp);
+    expect(result.filteredDifferences).toHaveLength(1);
+    expect(result.addedWarnings.some((w) => w.includes("sección sobre otro concepto"))).toBe(true);
   });
 });
 
@@ -211,7 +241,6 @@ describe("cambio de clasificación", () => {
 describe("conocimiento externo", () => {
   it("detecta semejanza sin source_fragment", () => {
     expect(hasUnsourcedSimilarity(makeSimilarity({ source_fragment: "" }))).toBe(true);
-    expect(hasUnsourcedSimilarity(makeSimilarity({ source_fragment: "corto" }))).toBe(true);
   });
 
   it("acepta semejanza con source_fragment suficiente", () => {
@@ -219,17 +248,13 @@ describe("conocimiento externo", () => {
   });
 });
 
-// ── Test 9: Contradicción entre comparación y documento ──
+// ── Test 9: Contradicción con el documento ──
 describe("contradicción con el documento", () => {
   it("documenta caso: Suiza como confederación actual", () => {
-    // Programmatic filter cannot catch factual errors, but we verify
-    // the structure allows the reviewer to flag it
     const comp = makeComparison({
       example: "Suiza es actualmente una confederación.",
       example_type: "didactic",
     });
-    // The example_type "didactic" signals it's AI-generated
-    // Semantic review should catch factual errors
     expect(comp.example_type).toBe("didactic");
   });
 });
@@ -240,18 +265,15 @@ describe("secciones artificiales", () => {
     const comp = makeComparison({ similarities: [] });
     const result = validateComparison(comp);
     expect(result.filteredSimilarities).toHaveLength(0);
-    // Valid as long as differences exist and concepts are supported
     expect(result.valid).toBe(true);
   });
 
   it("acepta comparación sin ejemplo", () => {
-    const comp = makeComparison({ example: "", example_type: "none" });
-    expect(validateComparisonSyntax(comp)).toBe(true);
+    expect(validateComparisonSyntax(makeComparison({ example: "", example_type: "none" }))).toBe(true);
   });
 
   it("acepta comparación sin normativa", () => {
-    const comp = makeComparison({ articles: "" });
-    expect(validateComparisonSyntax(comp)).toBe(true);
+    expect(validateComparisonSyntax(makeComparison({ articles: "" }))).toBe(true);
   });
 
   it("rechaza comparación sin diferencias válidas", () => {

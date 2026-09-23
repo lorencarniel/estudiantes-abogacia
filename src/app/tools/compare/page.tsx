@@ -12,11 +12,14 @@ interface ComparisonDifference {
   concept_b_value: string;
   source_a: string;
   source_b: string;
+  source_section_a: string;
+  source_section_b: string;
 }
 
 interface ComparisonSimilarity {
   statement: string;
   source_fragment: string;
+  source_section: string;
 }
 
 interface Comparison {
@@ -152,29 +155,40 @@ export default function ComparePage() {
                 {comp.differences.length > 0 && (
                   <div className="mb-4">
                     <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase mb-2">Diferencias</p>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm border-collapse">
+                    <div className="overflow-x-auto -mx-1">
+                      <table className="w-full text-sm border-collapse table-fixed">
+                        <colgroup>
+                          <col className="w-[20%]" />
+                          <col className="w-[40%]" />
+                          <col className="w-[40%]" />
+                        </colgroup>
                         <thead>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <th className="text-left py-2 px-2 text-gray-500 dark:text-gray-400 font-medium text-xs">Aspecto</th>
-                            <th className="text-left py-2 px-2 text-primary-600 dark:text-primary-400 font-medium text-xs">{comp.concept_a}</th>
-                            <th className="text-left py-2 px-2 text-indigo-600 dark:text-indigo-400 font-medium text-xs">{comp.concept_b}</th>
+                          <tr className="border-b-2 border-gray-200 dark:border-gray-700">
+                            <th className="text-left py-2 px-3 text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase">Aspecto</th>
+                            <th className="text-left py-2 px-3 text-primary-600 dark:text-primary-400 font-semibold text-xs uppercase">{comp.concept_a}</th>
+                            <th className="text-left py-2 px-3 text-indigo-600 dark:text-indigo-400 font-semibold text-xs uppercase">{comp.concept_b}</th>
                           </tr>
                         </thead>
                         <tbody>
                           {comp.differences.map((d, j) => (
-                            <tr key={j} className="border-b border-gray-100 dark:border-gray-800">
-                              <td className="py-2 px-2 text-gray-600 dark:text-gray-400 font-medium text-xs align-top">{d.aspect}</td>
-                              <td className="py-2 px-2 text-gray-700 dark:text-gray-300 align-top">
+                            <tr key={j} className={j < comp.differences.length - 1 ? "border-b border-gray-100 dark:border-gray-800" : ""}>
+                              <td className="py-3 px-3 text-gray-600 dark:text-gray-400 font-medium text-xs align-top">{d.aspect}</td>
+                              <td className="py-3 px-3 text-gray-700 dark:text-gray-300 text-sm align-top">
                                 <p>{d.concept_a_value}</p>
                                 {d.source_a && (
-                                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">&ldquo;{d.source_a}&rdquo;</p>
+                                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic break-words">&ldquo;{d.source_a}&rdquo;</p>
+                                )}
+                                {d.source_section_a && (
+                                  <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {d.source_section_a}</p>
                                 )}
                               </td>
-                              <td className="py-2 px-2 text-gray-700 dark:text-gray-300 align-top">
+                              <td className="py-3 px-3 text-gray-700 dark:text-gray-300 text-sm align-top">
                                 <p>{d.concept_b_value}</p>
                                 {d.source_b && (
-                                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">&ldquo;{d.source_b}&rdquo;</p>
+                                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic break-words">&ldquo;{d.source_b}&rdquo;</p>
+                                )}
+                                {d.source_section_b && (
+                                  <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {d.source_section_b}</p>
                                 )}
                               </td>
                             </tr>
@@ -198,6 +212,9 @@ export default function ComparePage() {
                               <p>{s.statement}</p>
                               {s.source_fragment && (
                                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 italic">&ldquo;{s.source_fragment}&rdquo;</p>
+                              )}
+                              {s.source_section && (
+                                <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">Secci&oacute;n: {s.source_section}</p>
                               )}
                             </div>
                           </div>
