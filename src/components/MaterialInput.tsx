@@ -22,6 +22,13 @@ interface NotebookOption {
   materialCount: number;
 }
 
+interface NotebookMaterial {
+  id: string;
+  title: string;
+  charCount: number;
+  content: string;
+}
+
 interface MaterialInputProps {
   onSubmit: (text: string, syllabusId?: string, options?: { simpleMode?: boolean }) => void;
   loading: boolean;
@@ -66,6 +73,10 @@ export default function MaterialInput({
   const [selectedNotebook, setSelectedNotebook] = useState<string | null>(null);
   const [simpleMode, setSimpleMode] = useState(false);
 
+  const [notebookMaterials, setNotebookMaterials] = useState<NotebookMaterial[]>([]);
+  const [selectedMaterialIds, setSelectedMaterialIds] = useState<Set<string>>(new Set());
+  const [notebookName, setNotebookName] = useState("");
+
   useEffect(() => {
     try {
       const cross = sessionStorage.getItem("crossToolText");
@@ -106,34 +117,60 @@ export default function MaterialInput({
   async function loadNotebook(id: string) {
     setLoadingNotebook(true);
     setSelectedNotebook(id);
+    setNotebookMaterials([]);
+    setSelectedMaterialIds(new Set());
+    setFileReady(false);
     try {
       const res = await fetch(`/api/notebooks/${id}`);
       const data = await res.json();
       if (data.notebook && data.notebook.materials.length > 0) {
-        const combined = data.notebook.materials
-          .map((m: { title: string; content: string }) => `--- ${m.title} ---\n${m.content}`)
-          .join("\n\n");
-        if (combined.length > 100_000) {
-          setUploadError(
-            `El cuaderno tiene ${combined.length.toLocaleString()} caracteres (máximo 100.000). ` +
-            `Seleccioná apuntes individuales o reducí el contenido.`
-          );
-          setText(combined.substring(0, 100_000));
-          setFileName(`📓 ${data.notebook.name} (recortado)`);
-          setFileCharCount(100_000);
-          setFileReady(true);
-        } else {
-          setText(combined);
-          setFileName(`📓 ${data.notebook.name}`);
-          setFileCharCount(combined.length);
-          setFileReady(true);
-        }
+        setNotebookName(data.notebook.name);
+        const mats: NotebookMaterial[] = data.notebook.materials.map(
+          (m: { id: string; title: string; charCount: number; content: string }) => ({
+            id: m.id, title: m.title, charCount: m.charCount, content: m.content,
+          })
+        );
+        setNotebookMaterials(mats);
+        const allIds = new Set(mats.map((m: NotebookMaterial) => m.id));
+        setSelectedMaterialIds(allIds);
       }
     } catch {
       setUploadError("Error al cargar el cuaderno");
     } finally {
       setLoadingNotebook(false);
     }
+  }
+
+  function toggleMaterial(id: string) {
+    setSelectedMaterialIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+    setFileReady(false);
+  }
+
+  function confirmNotebookSelection() {
+    const selected = notebookMaterials.filter((m) => selectedMaterialIds.has(m.id));
+    if (selected.length === 0) return;
+    const combined = selected
+      .map((m) => `--- ${m.title} ---\n${m.content}`)
+      .join("\n\n");
+    const totalChars = combined.length;
+    if (totalChars > 100_000) {
+      setUploadError(
+        `La selección tiene ${totalChars.toLocaleString()} caracteres (máximo 100.000). Deseleccioná algunos apuntes.`
+      );
+      return;
+    }
+    setText(combined);
+    const label = selected.length === notebookMaterials.length
+      ? notebookName
+      : `${notebookName} (${selected.length}/${notebookMaterials.length})`;
+    setFileName(`📓 ${label}`);
+    setFileCharCount(totalChars);
+    setFileReady(true);
+    setUploadError("");
   }
 
   function fetchMaterials() {
@@ -373,15 +410,93 @@ export default function MaterialInput({
               <p className="text-4xl mb-3">📓</p>
               <p className="text-green-800 dark:text-green-300 font-semibold mb-1">{fileName}</p>
               <p className="text-green-600 dark:text-green-400 text-sm">
-                Cuaderno cargado ({fileCharCount.toLocaleString()} caracteres)
+                {selectedMaterialIds.size} apunte{selectedMaterialIds.size !== 1 ? "s" : ""} seleccionado{selectedMaterialIds.size !== 1 ? "s" : ""} ({fileCharCount.toLocaleString()} caracteres)
               </p>
               <button
                 type="button"
                 onClick={handleRemoveFile}
                 className="mt-3 text-xs text-red-500 hover:text-red-700 font-medium"
               >
-                Cambiar cuaderno
+                Cambiar selección
               </button>
+            </div>
+          ) : selectedNotebook && notebookMaterials.length > 0 ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                  📓 {notebookName} — Seleccioná unidades
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedNotebook(null); setNotebookMaterials([]); setUploadError(""); }}
+                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                >
+                  Cambiar cuaderno
+                </button>
+              </div>
+              <div className="flex gap-2 mb-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMaterialIds(new Set(notebookMaterials.map((m) => m.id)))}
+                  className="text-xs text-primary-600 hover:text-primary-800 font-medium"
+                >
+                  Seleccionar todo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMaterialIds(new Set())}
+                  className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                >
+                  Deseleccionar
+                </button>
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {notebookMaterials.map((m) => {
+                  const checked = selectedMaterialIds.has(m.id);
+                  return (
+                    <label
+                      key={m.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        checked
+                          ? "border-primary-400 bg-primary-50 dark:bg-primary-900/20 dark:border-primary-600"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleMaterial(m.id)}
+                        className="h-4 w-4 text-primary-600 rounded"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 dark:text-white text-sm truncate">{m.title}</p>
+                        <p className="text-xs text-gray-400">{m.charCount.toLocaleString()} caracteres</p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              {(() => {
+                const selTotal = notebookMaterials
+                  .filter((m) => selectedMaterialIds.has(m.id))
+                  .reduce((s, m) => s + m.charCount, 0);
+                return (
+                  <div className="flex items-center justify-between">
+                    <p className={`text-xs ${selTotal > 100_000 ? "text-red-500 font-semibold" : "text-gray-500"}`}>
+                      {selectedMaterialIds.size} seleccionado{selectedMaterialIds.size !== 1 ? "s" : ""} — {selTotal.toLocaleString()} caracteres
+                      {selTotal > 100_000 && " (excede 100.000)"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={confirmNotebookSelection}
+                      disabled={selectedMaterialIds.size === 0 || selTotal > 100_000}
+                      className="btn-primary text-sm py-2 px-4"
+                    >
+                      Cargar selección
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           ) : loadingNotebook ? (
             <div className="flex justify-center py-6">
