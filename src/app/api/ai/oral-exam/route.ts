@@ -5,6 +5,7 @@ import { openai, AI_MODEL, SYSTEM_PROMPT, MAX_INPUT_LENGTH } from "@/lib/ai";
 import { oralExamPrompt, oralExamSchema, ExamType } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { safeJsonParse } from "@/lib/utils";
+import { addXP } from "@/lib/xp";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -48,7 +49,20 @@ export async function POST(request: Request) {
       max_tokens: 3000,
     });
 
-    const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as any);
+    const content = safeJsonParse(response.choices?.[0]?.message?.content, {} as Record<string, unknown>);
+
+    await prisma.generatedContent.create({
+      data: {
+        userId: session.user.id,
+        type: "oral_exam",
+        title: (content.title as string) || "Simulacro de examen oral",
+        content: JSON.stringify(content),
+        sourceText: text.substring(0, 500),
+      },
+    });
+
+    addXP(session.user.id, "oral_exam").catch(() => {});
+
     return NextResponse.json(content);
   } catch (err) {
     console.error("Oral exam error:", err);

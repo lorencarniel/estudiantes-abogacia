@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   }
 
   const roundNumber = Math.floor(((history?.length || 0) + 1) / 2) + 1;
-  const isFinalRound = roundNumber >= 3;
+  const isFinalRound = roundNumber >= 4;
 
   const historyText = (history || [])
     .map(

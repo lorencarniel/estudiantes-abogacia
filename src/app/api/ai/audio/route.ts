@@ -8,6 +8,7 @@ import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { audioScriptPrompt, audioScriptSchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { safeJsonParse } from "@/lib/utils";
+import { addXP } from "@/lib/xp";
 
 const VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"] as const;
 
@@ -62,20 +63,47 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No se pudo generar el guión del audio. El material puede ser demasiado corto." }, { status: 502 });
     }
 
-    let ttsResponse;
+    const TTS_CHAR_LIMIT = 4096;
+    let audioBuffer: Buffer;
     try {
-      ttsResponse = await openai.audio.speech.create({
-        model: "tts-1",
-        voice: voice,
-        input: script.length > 4096 ? script.slice(0, 4096) : script,
-        response_format: "mp3",
-      });
+      if (script.length <= TTS_CHAR_LIMIT) {
+        const ttsResponse = await openai.audio.speech.create({
+          model: "tts-1",
+          voice: voice,
+          input: script,
+          response_format: "mp3",
+        });
+        audioBuffer = Buffer.from(await ttsResponse.arrayBuffer());
+      } else {
+        const chunks: string[] = [];
+        let remaining = script;
+        while (remaining.length > 0) {
+          if (remaining.length <= TTS_CHAR_LIMIT) {
+            chunks.push(remaining);
+            break;
+          }
+          let cutAt = remaining.lastIndexOf(". ", TTS_CHAR_LIMIT);
+          if (cutAt < TTS_CHAR_LIMIT * 0.5) cutAt = remaining.lastIndexOf(" ", TTS_CHAR_LIMIT);
+          if (cutAt < TTS_CHAR_LIMIT * 0.3) cutAt = TTS_CHAR_LIMIT;
+          chunks.push(remaining.slice(0, cutAt + 1));
+          remaining = remaining.slice(cutAt + 1).trimStart();
+        }
+        const buffers: Buffer[] = [];
+        for (const chunk of chunks) {
+          const ttsResponse = await openai.audio.speech.create({
+            model: "tts-1",
+            voice: voice,
+            input: chunk,
+            response_format: "mp3",
+          });
+          buffers.push(Buffer.from(await ttsResponse.arrayBuffer()));
+        }
+        audioBuffer = Buffer.concat(buffers);
+      }
     } catch (ttsErr) {
       console.error("TTS error:", ttsErr);
       return NextResponse.json({ error: "No se pudo sintetizar el audio. Intentá con un texto más corto." }, { status: 502 });
     }
-
-    const audioBuffer = Buffer.from(await ttsResponse.arrayBuffer());
 
     const storageDir = path.join(process.cwd(), "storage", "audios");
     await mkdir(storageDir, { recursive: true });
@@ -96,6 +124,8 @@ export async function POST(request: Request) {
         voice,
       },
     });
+
+    addXP(session.user.id, "audio").catch(() => {});
 
     return NextResponse.json({
       id: saved.id,

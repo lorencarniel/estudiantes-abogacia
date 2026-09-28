@@ -113,10 +113,21 @@ export default function MaterialInput({
         const combined = data.notebook.materials
           .map((m: { title: string; content: string }) => `--- ${m.title} ---\n${m.content}`)
           .join("\n\n");
-        setText(combined);
-        setFileName(`📓 ${data.notebook.name}`);
-        setFileCharCount(combined.length);
-        setFileReady(true);
+        if (combined.length > 100_000) {
+          setUploadError(
+            `El cuaderno tiene ${combined.length.toLocaleString()} caracteres (máximo 100.000). ` +
+            `Seleccioná apuntes individuales o reducí el contenido.`
+          );
+          setText(combined.substring(0, 100_000));
+          setFileName(`📓 ${data.notebook.name} (recortado)`);
+          setFileCharCount(100_000);
+          setFileReady(true);
+        } else {
+          setText(combined);
+          setFileName(`📓 ${data.notebook.name}`);
+          setFileCharCount(combined.length);
+          setFileReady(true);
+        }
       }
     } catch {
       setUploadError("Error al cargar el cuaderno");
@@ -195,6 +206,8 @@ export default function MaterialInput({
         setFileReady(true);
         if (data.truncated) {
           setUploadError(data.message);
+        } else if (data.warning) {
+          setUploadError(data.warning);
         }
       }
     } catch {

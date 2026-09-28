@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { openai, AI_MODEL, SYSTEM_PROMPT, MAX_INPUT_LENGTH } from "@/lib/ai";
+import { safeJsonParse } from "@/lib/utils";
 import {
   triviaGamePrompt,
   triviaGameSchema,
@@ -117,7 +118,8 @@ export async function POST(request: Request) {
       max_tokens: 4000,
     });
 
-    const raw = JSON.parse(completion.choices[0].message.content || "{}");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = safeJsonParse(completion.choices[0]?.message?.content, {} as any) as Record<string, any>;
 
     let questions;
     let total: number;
@@ -154,14 +156,41 @@ export async function POST(request: Request) {
       questions = raw.items;
       total = raw.items.length;
     } else if (gameType === "article_fill") {
-      questions = raw.articles;
-      total = raw.articles.length;
+      const articles = (raw.articles || []) as Array<{
+        reference: string;
+        text_with_blanks: string;
+        blanks: Array<{ answer: string; options: string[] }>;
+      }>;
+      for (const a of articles) {
+        const blankCount = (a.text_with_blanks.match(/___/g) || []).length;
+        if (blankCount < a.blanks.length) {
+          a.blanks = a.blanks.slice(0, blankCount);
+        } else if (blankCount > a.blanks.length) {
+          const extra = blankCount - a.blanks.length;
+          for (let i = 0; i < extra; i++) {
+            const idx = a.text_with_blanks.lastIndexOf("___");
+            if (idx >= 0) {
+              const lastBlank = a.blanks[a.blanks.length - 1];
+              a.text_with_blanks =
+                a.text_with_blanks.substring(0, idx) +
+                (lastBlank?.answer || "___") +
+                a.text_with_blanks.substring(idx + 3);
+            }
+          }
+        }
+      }
+      questions = articles;
+      total = articles.length;
     } else if (gameType === "millionaire") {
       questions = raw.questions;
       total = raw.questions.length;
     } else if (gameType === "timeline") {
-      questions = raw.events;
-      total = raw.events.length;
+      const events = ((raw.events || []) as Array<{
+        label: string; detail: string; year: string; correct_position: number;
+      }>).filter((e) => e.year && /\d{3,4}/.test(e.year));
+      events.forEach((e, i) => { e.correct_position = i; });
+      questions = events;
+      total = events.length;
     } else {
       questions = raw.questions || raw.items || [];
       total = questions.length;

@@ -41,8 +41,19 @@ export async function POST(request: Request) {
     if (lowerName.endsWith(".pdf") || file.type === "application/pdf") {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require("pdf-parse/lib/pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
-        const data = await pdfParse(buffer);
+        const pdfParse = require("pdf-parse/lib/pdf-parse") as (
+          buf: Buffer,
+          options?: Record<string, unknown>,
+        ) => Promise<{ text: string; numpages: number }>;
+        let pageNum = 0;
+        const data = await pdfParse(buffer, {
+          pagerender: (pageData: { getTextContent: () => Promise<{ items: Array<{ str: string }> }> }) =>
+            pageData.getTextContent().then((content) => {
+              pageNum++;
+              const pageText = content.items.map((item) => item.str).join(" ");
+              return `\n[Página ${pageNum}]\n${pageText}`;
+            }),
+        });
         text = data.text;
       } catch (pdfErr) {
         console.error("PDF parse error:", pdfErr);
@@ -94,12 +105,22 @@ export async function POST(request: Request) {
       );
     }
 
+    const pageMarkers = (cleaned.match(/\[Página \d+\]/g) || []).length;
+    const charsPerPage = pageMarkers > 0 ? cleaned.length / pageMarkers : cleaned.length;
+    let scanWarning: string | undefined;
+    if (pageMarkers > 2 && charsPerPage < 200) {
+      scanWarning = `El archivo parece ser un PDF escaneado o con muy poco texto extraíble (${Math.round(charsPerPage)} caracteres por página). Si el contenido no se ve bien, probá pegando el texto manualmente.`;
+    }
+
     if (cleaned.length > 100_000) {
+      const truncated = cleaned.substring(0, 100_000);
+      const lastPageMatch = truncated.match(/\[Página (\d+)\][^[]*$/);
+      const lastPage = lastPageMatch ? lastPageMatch[1] : "?";
       return NextResponse.json({
-        text: cleaned.substring(0, 100_000),
+        text: truncated,
         truncated: true,
         originalLength: cleaned.length,
-        message: `El texto fue recortado a 100.000 caracteres (original: ${cleaned.length.toLocaleString()}).`,
+        message: `El texto fue recortado a 100.000 caracteres (original: ${cleaned.length.toLocaleString()}). Se conservaron hasta la página ${lastPage}. Para procesar el resto, subí las páginas restantes por separado.`,
       });
     }
 
@@ -108,6 +129,8 @@ export async function POST(request: Request) {
       truncated: false,
       fileName,
       charCount: cleaned.length,
+      pageCount: pageMarkers || undefined,
+      ...(scanWarning ? { warning: scanWarning } : {}),
     });
   } catch (err) {
     console.error("Extract error for file:", fileName, err);

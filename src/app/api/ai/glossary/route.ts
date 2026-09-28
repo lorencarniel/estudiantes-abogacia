@@ -5,6 +5,7 @@ import { openai, AI_MODEL, SYSTEM_PROMPT, MAX_INPUT_LENGTH, SIMPLE_MODE_SUFFIX }
 import { glossaryPrompt, glossarySchema } from "@/lib/prompts";
 import { prisma } from "@/lib/prisma";
 import { addXP } from "@/lib/xp";
+import { safeJsonParse } from "@/lib/utils";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
       max_tokens: 4000,
     });
 
-    const result = JSON.parse(completion.choices[0].message.content || "{}");
+    const result = safeJsonParse(completion.choices[0]?.message?.content, { terms: [] });
 
     await prisma.generatedContent.create({
       data: {

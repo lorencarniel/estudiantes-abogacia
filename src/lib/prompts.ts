@@ -33,7 +33,7 @@ export function summaryPrompt(text: string, level: "corto" | "mediano" | "detall
   const guidance = {
     corto: "Redactá un resumen conciso de no más de 300 palabras, con los puntos absolutamente esenciales.",
     mediano: "Redactá un resumen de extensión media (500-800 palabras) que cubra los conceptos principales con cierto desarrollo.",
-    detallado: "Redactá un resumen detallado y exhaustivo (1500-3000 palabras) que cubra TODOS los temas del apunte de principio a fin sin omitir ninguno. Cada definición, clasificación, enumeración, autor, artículo y ejemplo del material debe estar. Si el material enumera ítems, listalos todos, nunca uses 'entre otras' ni 'etc.'. No dejes ningún tema afuera.",
+    detallado: "Redactá un resumen detallado y exhaustivo (1500-3000 palabras) que cubra TODOS los temas del apunte de principio a fin sin omitir ninguno. Cada definición, clasificación, enumeración, autor, artículo y ejemplo del material debe estar. Si el material enumera ítems, listalos todos, nunca uses 'entre otras' ni 'etc.'. No dejes ningún tema afuera. IMPORTANTE: Cada sección del resumen debe DESARROLLAR el tema con profundidad (definiciones, clasificaciones, ejemplos, artículos citados). NO hagas una introducción breve seguida de una lista de términos — eso no es un resumen detallado. El cuerpo del resumen debe tener al menos 1500 palabras reales de desarrollo.",
   }[level];
 
   return (
@@ -1172,11 +1172,16 @@ export function articleFillGamePrompt(text: string, examType?: ExamType, syllabu
   const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
   return (
     `${BASE_RULES} ${examInstruction}` +
-    "Creá un juego de COMPLETAR ARTÍCULOS basado exclusivamente en el apunte. " +
-    "Buscá 5 artículos, normas o reglas mencionados en el material. Para cada uno: " +
-    "muestra el texto del artículo con 2-3 palabras clave reemplazadas por '___'. " +
-    "Para cada espacio en blanco, incluí la respuesta correcta y 3 opciones incorrectas (distractores plausibles). " +
-    "Si el apunte no cita artículos textuales, usá definiciones o reglas jurídicas del material como si fueran artículos. " +
+    "Creá un juego de COMPLETAR ARTÍCULOS basado exclusivamente en el apunte.\n" +
+    "REGLAS ESTRICTAS:\n" +
+    "1. Buscá artículos, normas, incisos o reglas CITADOS TEXTUALMENTE en el material.\n" +
+    "2. NO conviertas frases comunes, explicaciones doctrinarias ni oraciones genéricas en supuestos artículos.\n" +
+    "3. Solo usá definiciones o reglas jurídicas si el material las presenta como normativa (con número de artículo, ley o código).\n" +
+    "4. Si el material no cita suficientes artículos textuales, generá MENOS de 5 (hasta un mínimo de 2).\n" +
+    "5. Para cada artículo, reemplazá EXACTAMENTE 2-3 palabras clave por '___'.\n" +
+    "6. CRÍTICO: La cantidad de '___' en text_with_blanks DEBE ser EXACTAMENTE igual a la cantidad de elementos en el array blanks.\n" +
+    "7. Cada espacio en blanco tiene la respuesta correcta y 3 distractores plausibles (4 opciones en total).\n" +
+    "8. En 'reference' indicá el artículo/ley exacto (ej: 'Art. 14 CN', 'Art. 1071 CC').\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
@@ -1191,7 +1196,7 @@ export const articleFillGameSchema = {
     title: { type: "string" as const },
     articles: {
       type: "array" as const,
-      minItems: 5,
+      minItems: 2,
       maxItems: 5,
       items: {
         type: "object" as const,
@@ -1280,11 +1285,14 @@ export function timelineGamePrompt(text: string, examType?: ExamType, syllabus?:
   const examInstruction = examType ? EXAM_TYPE_INSTRUCTIONS[examType] + " " : "";
   return (
     `${BASE_RULES} ${examInstruction}` +
-    "Creá un juego de LÍNEA DE TIEMPO basado exclusivamente en el apunte. " +
-    "Identificá entre 6 y 8 eventos, leyes, reformas, hitos o fechas mencionados o derivados del material. " +
-    "Cada evento tiene: un título breve (máximo 6 palabras), una descripción corta, un año o período, y su posición correcta en orden cronológico (0 = más antiguo). " +
-    "Si el material no tiene fechas explícitas, usá el orden lógico/histórico de los institutos o normas. " +
-    "Incluí una explicación general de la línea de tiempo. " +
+    "Creá un juego de LÍNEA DE TIEMPO basado exclusivamente en el apunte.\n" +
+    "REGLAS:\n" +
+    "1. Identificá entre 6 y 8 eventos, leyes, reformas o hitos CON FECHA EXPLÍCITA en el material.\n" +
+    "2. Cada evento tiene: título breve (máx 6 palabras), descripción corta, año o período, posición cronológica (0 = más antiguo).\n" +
+    "3. El campo 'year' DEBE contener un año numérico o período concreto (ej: '1853', '1994', '1810-1816'). NUNCA dejarlo vacío ni usar 'sin fecha'.\n" +
+    "4. Si el material no menciona suficientes fechas explícitas, generá MENOS eventos (mínimo 4) en vez de inventar fechas.\n" +
+    "5. NO incluyas eventos cuya fecha no aparezca en el material.\n" +
+    "6. Incluí una explicación general de la línea de tiempo.\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>` +
     syllabusBlock(syllabus)
@@ -1300,7 +1308,7 @@ export const timelineGameSchema = {
     description: { type: "string" as const },
     events: {
       type: "array" as const,
-      minItems: 6,
+      minItems: 4,
       maxItems: 8,
       items: {
         type: "object" as const,
