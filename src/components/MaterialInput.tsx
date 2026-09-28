@@ -77,6 +77,15 @@ export default function MaterialInput({
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<Set<string>>(new Set());
   const [notebookName, setNotebookName] = useState("");
 
+  const [coverageResult, setCoverageResult] = useState<{
+    coverage: { unit: string; covered: boolean; ratio: number }[];
+    coveredCount: number;
+    totalUnits: number;
+    syllabusTitle: string;
+    warning?: string;
+  } | null>(null);
+  const [checkingCoverage, setCheckingCoverage] = useState(false);
+
   useEffect(() => {
     try {
       const cross = sessionStorage.getItem("crossToolText");
@@ -205,6 +214,24 @@ export default function MaterialInput({
     } finally {
       setLoadingContent(false);
     }
+  }
+
+  async function checkCoverage() {
+    if (!selectedSyllabus || text.trim().length < 80) return;
+    setCheckingCoverage(true);
+    setCoverageResult(null);
+    try {
+      const res = await fetch("/api/ai/coverage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text.trim(), syllabusId: selectedSyllabus }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCoverageResult(data);
+      }
+    } catch {}
+    setCheckingCoverage(false);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -678,6 +705,47 @@ export default function MaterialInput({
         >
           💡 {simpleMode ? "Modo fácil activado — explicaciones simples con ejemplos" : "Activar modo fácil"}
         </button>
+      )}
+
+      {showSyllabus && selectedSyllabus && isValid && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={checkCoverage}
+            disabled={checkingCoverage || busy}
+            className="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
+          >
+            {checkingCoverage ? "Verificando cobertura..." : "Verificar cobertura del programa"}
+          </button>
+          {coverageResult && coverageResult.coverage.length > 0 && (
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-800 space-y-2">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Cobertura: {coverageResult.coveredCount}/{coverageResult.totalUnits} unidades
+              </p>
+              <div className="space-y-1">
+                {coverageResult.coverage.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <span className={c.covered ? "text-green-600" : "text-red-500"}>
+                      {c.covered ? "✓" : "✗"}
+                    </span>
+                    <span className={`flex-1 ${c.covered ? "text-gray-700 dark:text-gray-300" : "text-red-600 dark:text-red-400"}`}>
+                      {c.unit}
+                    </span>
+                    <span className="text-gray-400">{Math.round(c.ratio * 100)}%</span>
+                  </div>
+                ))}
+              </div>
+              {coverageResult.coveredCount < coverageResult.totalUnits && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Faltan {coverageResult.totalUnits - coverageResult.coveredCount} unidad{coverageResult.totalUnits - coverageResult.coveredCount !== 1 ? "es" : ""}. Podés continuar, pero el contenido generado solo cubrirá las unidades presentes.
+                </p>
+              )}
+            </div>
+          )}
+          {coverageResult?.warning && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">{coverageResult.warning}</p>
+          )}
+        </div>
       )}
 
       <button
