@@ -22,15 +22,24 @@ export function validateSyntax(q: QuizQuestion): boolean {
   return true;
 }
 
+function spanishStem(word: string): string {
+  return word
+    .replace(/(ción|sión|miento|mente|idad|idades)$/, "")
+    .replace(/(ados?|idos?|adas?|idas?|ando|iendo|aron|ieron|aban|ían)$/, "")
+    .replace(/(an|en|ar|er|ir|ó|á|é)$/, "");
+}
+
 export function isCircularQuestion(q: QuizQuestion): boolean {
   const answer = q.options[q.correct_index]?.trim().toLowerCase() || "";
   const question = q.statement.trim().toLowerCase();
   if (answer.length < 5) return false;
 
-  const qWords = new Set(question.replace(/[¿?.,;:()]/g, "").split(/\s+/).filter((w) => w.length > 3));
+  const qWords = question.replace(/[¿?.,;:()]/g, "").split(/\s+/).filter((w) => w.length > 3);
+  const qSet = new Set(qWords);
+  const qStems = new Set(qWords.map(spanishStem));
   const aWords = answer.replace(/[¿?.,;:()]/g, "").split(/\s+/).filter((w) => w.length > 3);
   if (aWords.length === 0) return false;
-  const overlap = aWords.filter((w) => qWords.has(w)).length;
+  const overlap = aWords.filter((w) => qSet.has(w) || qStems.has(spanishStem(w))).length;
   const overlapRatio = overlap / aWords.length;
   return overlapRatio > 0.7;
 }
