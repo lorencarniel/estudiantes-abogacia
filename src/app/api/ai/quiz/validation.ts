@@ -35,6 +35,18 @@ export function isCircularQuestion(q: QuizQuestion): boolean {
   return overlapRatio > 0.7;
 }
 
+export function validateSourceFragment(q: QuizQuestion, sourceText: string): boolean {
+  const frag = q.source_fragment?.trim();
+  if (!frag || frag.length < 10) return false;
+  const normalizedSource = sourceText.toLowerCase().replace(/\s+/g, " ");
+  const normalizedFrag = frag.toLowerCase().replace(/\s+/g, " ");
+  if (normalizedSource.includes(normalizedFrag)) return true;
+  const words = normalizedFrag.split(" ").filter((w) => w.length > 3);
+  if (words.length === 0) return false;
+  const matched = words.filter((w) => normalizedSource.includes(w)).length;
+  return matched / words.length >= 0.7;
+}
+
 export function checkTopicDistribution(questions: QuizQuestion[]): { valid: boolean; duplicated: string[] } {
   const conceptCounts = new Map<string, number>();
   for (const q of questions) {

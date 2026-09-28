@@ -393,6 +393,10 @@ export function quizPrompt(
     "8. OPTION ANALYSES\n" +
     "Para cada opción, escribí en option_analyses por qué es correcta o incorrecta según el material. " +
     "option_analyses[0] explica la opción 0, option_analyses[1] la opción 1, etc.\n\n" +
+    "9. NO MEZCLAR JURISDICCIONES\n" +
+    "No mezcles artículos de legislación nacional (CN, Código Civil, Código Penal) con legislación provincial " +
+    "en una misma pregunta sin aclarar a cuál pertenece cada uno. Si el material cita normas de distintas " +
+    "jurisdicciones, especificá claramente la jurisdicción en el enunciado y las opciones.\n\n" +
     "Variá la posición de la respuesta correcta entre las 4 opciones.\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>${previous}` +
@@ -1620,6 +1624,9 @@ export function evaluateAnswerPrompt(
     "- Dar una respuesta modelo (lo que debería haber dicho un alumno con nota 10)\n" +
     "- Un consejo breve para mejorar\n" +
     "Basate exclusivamente en el apunte para evaluar.\n" +
+    "NO penalices al alumno por no mencionar normas, artículos, fechas o datos que NO aparecen en el material proporcionado. " +
+    "Solo evaluá respecto a la información presente en el apunte. " +
+    "Si el alumno omite algo que el material no cubre, no lo cuentes como faltante.\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${sourceText}\n</apunte>`
   );
@@ -1740,6 +1747,7 @@ export function mnemonicPrompt(text: string): string {
     "- Incluí TODOS los ítems de cada enumeración, no solo algunos.\n" +
     "- No inventes ítems que no estén en el material.\n" +
     "- No uses caracteres decorativos ni símbolos especiales.\n" +
+    "- En el campo 'items_list' incluí la lista COMPLETA de ítems que cubre el mnemotécnico, tal como aparecen en el material.\n" +
     "Generá entre 5 y 8 mnemotécnicos.\n" +
     "Devolvé únicamente JSON conforme al esquema.\n" +
     `<apunte>\n${text}\n</apunte>`
@@ -1757,12 +1765,16 @@ export const mnemonicSchema: Record<string, unknown> = {
       items: {
         type: "object" as const,
         additionalProperties: false,
-        required: ["concept", "technique", "mnemonic", "explanation"],
+        required: ["concept", "technique", "mnemonic", "explanation", "items_list"],
         properties: {
           concept: { type: "string" as const },
           technique: { type: "string" as const },
           mnemonic: { type: "string" as const },
           explanation: { type: "string" as const },
+          items_list: {
+            type: "array" as const,
+            items: { type: "string" as const },
+          },
         },
       },
     },

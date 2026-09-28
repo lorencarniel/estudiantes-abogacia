@@ -15,7 +15,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { addXP } from "@/lib/xp";
 import { safeJsonParse } from "@/lib/utils";
-import { type QuizQuestion, validateSyntax, isCircularQuestion } from "./validation";
+import { type QuizQuestion, validateSyntax, isCircularQuestion, validateSourceFragment, checkTopicDistribution } from "./validation";
 
 // ── Route schemas ──
 
@@ -103,6 +103,7 @@ export async function POST(request: Request) {
     for (const q of content.questions) {
       if (!validateSyntax(q)) continue;
       if (isCircularQuestion(q)) continue;
+      if (!validateSourceFragment(q, text)) continue;
       candidates.push(q);
     }
 
@@ -165,7 +166,7 @@ export async function POST(request: Request) {
         const retryContent = safeJsonParse(retryResponse.choices?.[0]?.message?.content, { questions: [] } as { questions: QuizQuestion[] });
         for (const q of retryContent.questions) {
           if (approved.length >= 10) break;
-          if (validateSyntax(q) && !isCircularQuestion(q)) {
+          if (validateSyntax(q) && !isCircularQuestion(q) && validateSourceFragment(q, text)) {
             approved.push(q);
           }
         }
@@ -174,7 +175,20 @@ export async function POST(request: Request) {
       }
     }
 
-    const finalQuestions = approved.slice(0, 10);
+    const dist = checkTopicDistribution(approved);
+    let finalPool = approved;
+    if (!dist.valid) {
+      const duped = new Set(dist.duplicated);
+      const seen = new Map<string, number>();
+      finalPool = approved.filter((q) => {
+        const c = q.concept.trim().toLowerCase();
+        if (!duped.has(c)) return true;
+        const count = (seen.get(c) || 0) + 1;
+        seen.set(c, count);
+        return count <= 2;
+      });
+    }
+    const finalQuestions = finalPool.slice(0, 10);
 
     const quiz = await prisma.quizAttempt.create({
       data: {

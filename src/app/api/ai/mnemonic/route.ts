@@ -38,7 +38,29 @@ export async function POST(request: Request) {
       max_tokens: 4000,
     });
 
-    const result = safeJsonParse(completion.choices[0].message.content, { title: "Mnemotécnicos", mnemonics: [] });
+    const result = safeJsonParse(completion.choices[0].message.content, {
+      title: "Mnemotécnicos",
+      mnemonics: [] as Array<{
+        concept: string; technique: string; mnemonic: string;
+        explanation: string; items_list: string[];
+      }>,
+    });
+
+    if (result.mnemonics) {
+      result.mnemonics = result.mnemonics.filter((m) => {
+        if (m.technique?.toLowerCase().includes("acrónimo") || m.technique?.toLowerCase().includes("acronimo")) {
+          const acronym = m.mnemonic.replace(/[^a-záéíóúñü]/gi, "").toUpperCase();
+          const items = m.items_list || [];
+          if (items.length === 0) return true;
+          if (acronym.length !== items.length) return false;
+          for (let i = 0; i < acronym.length; i++) {
+            const firstChar = items[i]?.trim()[0]?.toUpperCase() || "";
+            if (firstChar !== acronym[i]) return false;
+          }
+        }
+        return true;
+      });
+    }
 
     await prisma.generatedContent.create({
       data: {
