@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { openai, AI_MODEL, SYSTEM_PROMPT } from "@/lib/ai";
 import { expandNodePrompt, expandNodeSchema } from "@/lib/prompts";
 import { safeJsonParse } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 
 const requestSchema = z.object({
   text: z.string().min(80).max(100_000),
@@ -12,6 +13,7 @@ const requestSchema = z.object({
   parentLabel: z.string(),
   parentCategory: z.string(),
   existingLabels: z.array(z.string()),
+  mapId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -26,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const { text, parentId, parentLabel, parentCategory, existingLabels } = parsed.data;
+  const { text, parentId, parentLabel, parentCategory, existingLabels, mapId } = parsed.data;
 
   try {
     const response = await openai.chat.completions.create({
@@ -56,6 +58,32 @@ export async function POST(request: Request) {
       target: n.id,
       label: content.edges[i]?.label || "se relaciona con",
     }));
+
+    if (mapId) {
+      try {
+        const existing = await prisma.generatedContent.findFirst({
+          where: { id: mapId, userId: session.user.id },
+        });
+        if (existing) {
+          const mapContent = safeJsonParse(existing.content, { title: "", nodes: [], edges: [] }) as {
+            title: string;
+            nodes: Array<{ id: string; label: string; category: string; expandable?: boolean }>;
+            edges: Array<{ source: string; target: string; label: string }>;
+          };
+          mapContent.nodes = mapContent.nodes.map((n) =>
+            n.id === parentId ? { ...n, expandable: false } : n,
+          );
+          mapContent.nodes.push(...nodes);
+          mapContent.edges.push(...edges);
+          await prisma.generatedContent.update({
+            where: { id: mapId },
+            data: { content: JSON.stringify(mapContent) },
+          });
+        }
+      } catch {
+        // non-critical — expansion still works without persistence
+      }
+    }
 
     return NextResponse.json({ nodes, edges });
   } catch (err) {

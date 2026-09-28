@@ -127,9 +127,10 @@ const nodeTypes = { concept: ConceptNode };
 interface Props {
   initialData: ConceptMapData;
   sourceText?: string;
+  mapId?: string;
 }
 
-export default function ConceptMapEditor({ initialData, sourceText }: Props) {
+export default function ConceptMapEditor({ initialData, sourceText, mapId }: Props) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [showLegend, setShowLegend] = useState(true);
 
@@ -175,6 +176,7 @@ export default function ConceptMapEditor({ initialData, sourceText }: Props) {
           parentLabel: parentNode.label,
           parentCategory: parentNode.category,
           existingLabels,
+          mapId,
         }),
       });
 

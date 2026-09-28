@@ -19,6 +19,7 @@ interface MapEdge {
 }
 
 interface ConceptMapData {
+  id?: string;
   title: string;
   nodes: MapNode[];
   edges: MapEdge[];
@@ -107,7 +108,7 @@ export default function ConceptMapsPage() {
               Generar otro mapa
             </button>
           </div>
-          <ConceptMapEditor initialData={mapData} sourceText={sourceText} />
+          <ConceptMapEditor initialData={mapData} sourceText={sourceText} mapId={mapData.id} />
         </div>
       )}
     </div>

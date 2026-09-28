@@ -215,20 +215,24 @@ export default function SchedulesPage() {
     if (viewSchedule?.id === id) setViewSchedule(null);
   }
 
+  function localDateStr(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
   function getMinDate(): string {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toISOString().split("T")[0];
+    return localDateStr(d);
   }
 
   function getMaxDate(): string {
     const d = new Date();
     d.setDate(d.getDate() + 90);
-    return d.toISOString().split("T")[0];
+    return localDateStr(d);
   }
 
   if (viewSchedule) {
-    const today = new Date().toISOString().split("T")[0];
+    const today = localDateStr(new Date());
     const totalDays = viewSchedule.schedule.length;
     const completedCount = viewSchedule.completedDays.length;
     const progress = totalDays > 0 ? Math.round((completedCount / totalDays) * 100) : 0;
@@ -548,11 +552,14 @@ export default function SchedulesPage() {
               const totalDays = sched.schedule.length;
               const completedCount = sched.completedDays.length;
               const progress = totalDays > 0 ? Math.round((completedCount / totalDays) * 100) : 0;
+              const examStr = String(sched.examDate).slice(0, 10);
+              const [ey, em, ed] = examStr.split("-").map(Number);
+              const examLocal = new Date(ey, em - 1, ed, 12, 0, 0);
+              const nowLocal = new Date();
+              const todayNoon = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate(), 12, 0, 0);
               const daysLeft = Math.max(
                 0,
-                Math.ceil(
-                  (new Date(sched.examDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                )
+                Math.round((examLocal.getTime() - todayNoon.getTime()) / (1000 * 60 * 60 * 24))
               );
 
               return (

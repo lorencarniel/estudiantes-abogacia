@@ -38,6 +38,21 @@ const VALID_GAME_TYPES = [
   "hangman", "crossword", "memory", "categorize", "article_fill", "millionaire", "timeline",
 ] as const;
 
+const GAME_TYPE_LABELS: Record<string, string> = {
+  trivia: "Trivia",
+  true_false: "Verdadero o Falso",
+  matching: "Relacionar conceptos",
+  ordering: "Ordenar",
+  fill_blank: "Completar",
+  hangman: "Ahorcado",
+  crossword: "Crucigrama",
+  memory: "Memotest",
+  categorize: "Categorizar",
+  article_fill: "Artículos",
+  millionaire: "Millonario",
+  timeline: "Línea de tiempo",
+};
+
 const GAME_REGISTRY: Record<string, {
   prompt: (text: string, examType?: ExamType, syllabus?: string) => string;
   schema: Record<string, unknown>;
@@ -196,12 +211,13 @@ export async function POST(request: Request) {
       total = questions.length;
     }
 
+    const gameTitle = raw.title || GAME_TYPE_LABELS[gameType] || gameType;
     const gameSession = await prisma.gameSession.create({
       data: {
         userId: session.user.id,
         gameType,
         examType: validExamType || null,
-        title: raw.title,
+        title: gameTitle,
         questions: JSON.stringify(questions),
         total,
       },
